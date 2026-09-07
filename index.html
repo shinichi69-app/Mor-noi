@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>หมอใจดี — Clinical Interview Pro</title>
+<style>
+  /* ============ CSS Variables & Reset ============ */
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1e40af;
+    --primary-light: #dbeafe;
+    --accent: #10b981;
+    --danger: #ef4444;
+    --danger-dark: #b91c1c;
+    --warning: #f59e0b;
+    --bg: #f0f9ff;
+    --card: #ffffff;
+    --text: #1e293b;
+    --text-light: #64748b;
+    --border: #e2e8f0;
+    --shadow: 0 4px 20px rgba(37, 99, 235, 0.08);
+    --shadow-lg: 0 10px 40px rgba(37, 99, 235, 0.15);
+    --radius: 16px;
+    --radius-sm: 10px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Sarabun', 'Segoe UI', -apple-system, sans-serif;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+    padding-bottom: 100px;
+  }
+
+  /* ============ Header ============ */
+  .header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    padding: 20px;
+    box-shadow: var(--shadow-lg);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-content {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.4rem;
+    font-weight: 700;
+  }
+
+  .logo-icon {
+    font-size: 2rem;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+
+  .mode-toggle {
+    display: flex;
+    background: rgba(255,255,255,0.15);
+    border-radius: 50px;
+    padding: 4px;
+    backdrop-filter: blur(10px);
+  }
+
+  .mode-btn {
+    padding: 8px 18px;
+    border: none;
+    background: transparent;
+    color: white;
+    border-radius: 50px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: var(--transition);
+    font-family: inherit;
+  }
+
+  .mode-btn.active {
+    background: white;
+    color: var(--primary);
+  }
+
+  /* ============ Progress Bar ============ */
+  .progress-container {
+    max-width: 900px;
+    margin: 20px auto;
+    padding: 0 20px;
+  }
+
+  .progress-bar {
+    height: 8px;
+    background: var(--border);
+    border-radius: 50px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    border-radius: 50px;
+    transition: width 0.5s ease;
+    width: 0%;
+  }
+
+  .progress-text {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--text-light);
+    font-weight: 500;
+  }
+
+  /* ============ Main Container ============ */
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 28px;
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+    animation: slideIn 0.4s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .screen-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .screen-subtitle {
+    color: var(--text-light);
+    margin-bottom: 24px;
+    font-size: 0.95rem;
+  }
+
+  /* ============ Form Elements ============ */
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+
+  input[type="number"], input[type="text"], textarea, select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    font-family: inherit;
+    transition: var(--transition);
+    background: #fafbfc;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: white;
+    box-shadow: 0 0 0 4px var(--primary-light);
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+
+  .radio-group, .checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .radio-option, .checkbox-option {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .radio-option input, .checkbox-option input {
+    display: none;
+  }
+
+  .radio-option label, .checkbox-option label {
+    display: block;
+    padding: 12px 16px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    font-weight: 500;
+    background: #fafbfc;
+    margin: 0;
+  }
+
+  .radio-option input:checked + label,
+  .checkbox-option input:checked + label {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  }
+
+  /* ============ Symptom Grid ============ */
+  .symptom-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .symptom-card {
+    position: relative;
+    padding: 16px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+    background: #fafbfc;
+    text-align: center;
+    user-select: none;
+  }
+
+  .symptom-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+  }
+
+  .symptom-card.selected {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    border-color: var(--primary-dark);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3);
+  }
+
+  .symptom-icon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .symptom-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  /* ============ Severity Slider ============ */
+  .severity-container {
+    padding: 20px 0;
+  }
+
+  .severity-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--text-light);
+  }
+
+  .severity-value {
+    text-align: center;
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--primary);
+    margin: 10px 0;
+    transition: var(--transition);
+  }
+
+  input[type="range"] {
+    width: 100%;
+    height: 10px;
+    border-radius: 50px;
+    background: linear-gradient(90deg, #10b981 0%, #f59e0b 50%, #ef4444 100%);
+    outline: none;
+    -webkit-appearance: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid var(--primary);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  /* ============ Red Flags ============ */
+  .red-flag-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: var(--transition);
+    background: #fafbfc;
+  }
+
+  .red-flag-item:hover {
+    border-color: var(--danger);
+    background: #fef2f2;
+  }
+
+  .red-flag-item.selected {
+    border-color: var(--danger);
+    background: #fee2e2;
+  }
+
+  .red-flag-item input { display: none; }
+
+  .red-flag-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+
+  .red-flag-text {
+    flex: 1;
+    font-weight: 500;
+  }
+
+  /* ============ Vitals Grid ============ */
+  .vitals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+  }
+
+  .vital-card {
+    padding: 16px;
+    background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+  }
+
+  .vital-label {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+
+  .vital-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-align: center;
+    background: white;
+  }
+
+  .vital-unit {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    margin-top: 4px;
+    text-align: center;
+  }
+
+  /* ============ Buttons ============ */
+  .btn-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 14px 28px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    flex: 1;
+    min-width: 150px;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+  }
+
+  .btn-secondary {
+    background: white;
+    color: var(--text);
+    border: 2px solid var(--border);
+  }
+
+  .btn-secondary:hover {
+    background: #f8fafc;
+    border-color: var(--primary);
+  }
+
+  .btn-danger {
+    background: linear-gradient(135deg, var(--danger), var(--danger-dark));
+    color: white;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  }
+
+  .btn-success {
+    background: linear-gradient(135deg, var(--accent), #059669);
+    color: white;
+  }
+
+  /* ============ Emergency Button (Floating) ============ */
+  .emergency-float {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, var(--danger), var(--danger-dark));
+    color: white;
+    padding: 16px 24px;
+    border-radius: 50px;
+    border: none;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+    z-index: 99;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: emergencyPulse 2s infinite;
+    font-family: inherit;
+  }
+
+  @keyframes emergencyPulse {
+    0%, 100% { box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4); }
+    50% { box-shadow: 0 8px 32px rgba(239, 68, 68, 0.7); }
+  }
+
+  /* ============ Summary / SOAP Note ============ */
+  .summary-section {
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    border-left: 4px solid var(--accent);
+    padding: 16px 20px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 16px;
+  }
+
+  .summary-section.danger {
+    background: linear-gradient(135deg, #fef2f2, #fee2e2);
+    border-left-color: var(--danger);
+  }
+
+  .summary-section h3 {
+    color: var(--primary-dark);
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .summary-section.danger h3 { color: var(--danger-dark); }
+
+  .summary-list {
+    list-style: none;
+  }
+
+  .summary-list li {
+    padding: 6px 0;
+    padding-left: 20px;
+    position: relative;
+  }
+
+  .summary-list li:before {
+    content: "•";
+    color: var(--primary);
+    font-weight: bold;
+    position: absolute;
+    left: 0;
+  }
+
+  .soap-note {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 20px;
+    border-radius: var(--radius-sm);
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+    line-height: 1.7;
+    margin-top: 16px;
+  }
+
+  .soap-note .soap-label {
+    color: #60a5fa;
+    font-weight: bold;
+  }
+
+  /* ============ Alert Box ============ */
+  .alert {
+    padding: 16px 20px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .alert-warning {
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+    color: #92400e;
+  }
+
+  .alert-danger {
+    background: #fee2e2;
+    border: 1px solid #ef4444;
+    color: #991b1b;
+  }
+
+  .alert-info {
+    background: var(--primary-light);
+    border: 1px solid var(--primary);
+    color: var(--primary-dark);
+  }
+
+  /* ============ Doctor Mode Specific ============ */
+  .doctor-only { display: none; }
+  body.doctor-mode .doctor-only { display: block; }
+  body.doctor-mode .patient-only { display: none; }
+
+  .analysis-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-right: 6px;
+    margin-bottom: 6px;
+  }
+
+  .analysis-badge.high {
+    background: #fee2e2;
+    color: var(--danger-dark);
+  }
+
+  /* ============ Responsive ============ */
+  @media (max-width: 600px) {
+    .card { padding: 20px; }
+    .screen-title { font-size: 1.25rem; }
+    .symptom-grid { grid-template-columns: repeat(2, 1fr); }
+    .btn-group { flex-direction: column; }
+    .btn { width: 100%; }
+    .emergency-float { padding: 12px 18px; font-size: 0.9rem; }
+  }
+
+  /* ============ Print Styles ============ */
+  @media print {
+    .header, .progress-container, .btn-group, .emergency-float, .no-print { display: none !important; }
+    body { background: white; }
+    .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
+  }
+
+  /* ============ Modal ============ */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.3s;
+  }
+
+  .modal-overlay.active { display: flex; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal {
+    background: white;
+    border-radius: var(--radius);
+    padding: 30px;
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+    animation: slideIn 0.4s;
+  }
+
+  .modal-icon {
+    font-size: 4rem;
+    margin-bottom: 16px;
+  }
+
+  .modal h2 {
+    color: var(--danger-dark);
+    margin-bottom: 12px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ HEADER ============ -->
+<header class="header">
+  <div class="header-content">
+    <div class="logo">
+      <span class="logo-icon">🩺</span>
+      <div>
+        <div>หมอใจดี</div>
+        <div style="font-size: 0.75rem; font-weight: 400; opacity: 0.9;">Clinical Interview Pro</div>
+      </div>
+    </div>
+    <div class="mode-toggle">
+      <button class="mode-btn active" data-mode="patient" onclick="switchMode('patient')">👤 โหมดคนไข้</button>
+      <button class="mode-btn" data-mode="doctor" onclick="switchMode('doctor')">🩺 โหมดหมอ</button>
+    </div>
+  </div>
+</header>
+
+<!-- ============ PROGRESS ============ -->
+<div class="progress-container">
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="progress-text" id="progressText">ขั้นตอนที่ 1 จาก 8</div>
+</div>
+
+<!-- ============ MAIN CONTAINER ============ -->
+<div class="container">
+
+  <!-- Screen 1: Demographics -->
+  <div class="screen active" id="screen-demographics">
+    <div class="card">
+      <h2 class="screen-title">👤 ข้อมูลพื้นฐาน</h2>
+      <p class="screen-subtitle">เริ่มจากข้อมูลพื้นฐาน ตอบเท่าที่รู้ ไม่ต้องใช้ศัพท์แพทย์</p>
+
+      <div class="form-group">
+        <label>อายุ (ปี)</label>
+        <input type="number" id="age" min="0" max="120" placeholder="เช่น 45">
+      </div>
+
+      <div class="form-group">
+        <label>เพศ</label>
+        <div class="radio-group">
+          <div class="radio-option">
+            <input type="radio" name="gender" id="g-male" value="ชาย">
+            <label for="g-male">ชาย</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" name="gender" id="g-female" value="หญิง">
+            <label for="g-female">หญิง</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" name="gender" id="g-other" value="ไม่ระบุ">
+            <label for="g-other">อื่นๆ / ไม่ระบุ</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group" id="pregnancy-group" style="display:none;">
+        <label>ตอนนี้ตั้งครรภ์หรืออาจตั้งครรภ์ไหม?</label>
+        <div class="radio-group">
+          <div class="radio-option">
+            <input type="radio" name="pregnancy" id="p-no" value="ไม่ใช่/ไม่ทราบ">
+            <label for="p-no">ไม่ใช่ / ไม่ทราบ</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" name="pregnancy" id="p-yes" value="ใช่">
+            <label for="p-yes">ใช่</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>มีโรคประจำตัวอะไรไหม?</label>
+        <textarea id="chronicDiseases" placeholder="เช่น เบาหวาน, ความดัน, หอบหืด, ไขมันสูง (ถ้าไม่มีพิมพ์ว่า ไม่มี)"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>มียาที่กินประจำหรือแพ้ยาไหม?</label>
+        <textarea id="medications" placeholder="เช่น ยาความดัน, แพ้ Penicillin (ถ้าไม่มีพิมพ์ว่า ไม่มี)"></textarea>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="nextScreen('chief-complaints')">เริ่มซักอาการ →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: Chief Complaints -->
+  <div class="screen" id="screen-chief-complaints">
+    <div class="card">
+      <h2 class="screen-title">📋 วันนี้ไม่สบายเรื่องอะไร?</h2>
+      <p class="screen-subtitle">เลือกได้หลายข้อ ระบบจะสร้างคำถามต่อให้ตรงกับอาการ</p>
+
+      <div class="symptom-grid" id="symptomGrid">
+        <!-- สร้างด้วย JS -->
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="prevScreen()">← ย้อนกลับ</button>
+        <button class="btn btn-primary" onclick="nextScreen('onset')">ถามรายละเอียดเพิ่มเติม →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 3: Onset & Progression -->
+  <div class="screen" id="screen-onset">
+    <div class="card">
+      <h2 class="screen-title">⏰ รายละเอียดอาการ</h2>
+      <p class="screen-subtitle">หมอขอถามเฉพาะเรื่องที่สำคัญ</p>
+
+      <div class="form-group">
+        <label>เริ่มมีอาการเมื่อไร?</label>
+        <input type="text" id="onset" placeholder="เช่น เมื่อวานนี้, 3 วันที่แล้ว, หลังทานอาหาร">
+      </div>
+
+      <div class="form-group">
+        <label>ตอนนี้อาการโดยรวมเป็นอย่างไร?</label>
+        <div class="radio-group">
+          <div class="radio-option">
+            <input type="radio" name="progression" id="prog-same" value="พอ ๆ เดิม">
+            <label for="prog-same">พอ ๆ เดิม</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" name="progression" id="prog-better" value="ดีขึ้น">
+            <label for="prog-better">ดีขึ้น</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" name="progression" id="prog-worse" value="แย่ลง">
+            <label for="prog-worse">แย่ลง</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" name="progression" id="prog-rapid" value="แย่ลงเร็วมาก">
+            <label for="prog-rapid">แย่ลงเร็วมาก</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" name="progression" id="prog-recur" value="เป็น ๆ หาย ๆ">
+            <label for="prog-recur">เป็น ๆ หาย ๆ</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>เล่าอาการด้วยภาษาของคุณเอง</label>
+        <textarea id="narrative" placeholder="เล่ามาได้เลย ไม่ต้องกังวลเรื่องคำศัพท์แพทย์"></textarea>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="prevScreen()">← ย้อนกลับ</button>
+        <button class="btn btn-primary" onclick="nextScreen('detailed')">ถามรายละเอียดเพิ่มเติม →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 4: Dynamic Detailed Questions -->
+  <div class="screen" id="screen-detailed">
+    <div class="card">
+      <h2 class="screen-title">🔍 คำถามเจาะลึก</h2>
+      <p class="screen-subtitle">คำถามชุดนี้เปลี่ยนตามอาการที่คุณเลือก</p>
+      <div id="dynamicQuestions"></div>
+
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="prevScreen()">← ย้อนกลับ</button>
+        <button class="btn btn-primary" onclick="nextScreen('severity')">ตรวจระดับความรุนแรง →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 5: Severity -->
+  <div class="screen" id="screen-severity">
+    <div class="card">
+      <h2 class="screen-title">📊 ความรุนแรงของอาการ</h2>
+      <p class="screen-subtitle">ให้คะแนนความรุนแรงของอาการตอนนี้</p>
+
+      <div class="severity-container">
+        <div class="severity-value" id="severityDisplay">5</div>
+        <input type="range" id="severity" min="0" max="10" value="5" oninput="updateSeverity(this.value)">
+        <div class="severity-scale">
+          <span>0 = ไม่รุนแรง</span>
+          <span>5 = ปานกลาง</span>
+          <span>10 = รุนแรงที่สุด</span>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="prevScreen()">← ย้อนกลับ</button>
+        <button class="btn btn-primary" onclick="nextScreen('redflags')">ตรวจสัญญาณอันตราย →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 6: Red Flags -->
+  <div class="screen" id="screen-redflags">
+    <div class="card">
+      <h2 class="screen-title">🚨 สัญญาณอันตราย</h2>
+      <p class="screen-subtitle">ตอบ "ใช่" เฉพาะสิ่งที่กำลังเกิดขึ้นจริงหรือเกิดขึ้นชัดเจนครั้งนี้</p>
+
+      <div class="alert alert-warning">
+        <span style="font-size:1.3rem;">⚠️</span>
+        <div>หากไม่แน่ใจให้เลือก "ไม่แน่ใจ" ระบบจะประเมินให้</div>
+      </div>
+
+      <div id="redFlagList"></div>
+
+      <div class="form-group" style="margin-top: 20px;">
+        <label>เคยเป็นแบบนี้มาก่อนหรือไม่?</label>
+        <div class="radio-group">
+          <div class="radio-option">
+            <input type="radio" name="priorHistory" id="ph-never" value="ไม่เคย">
+            <label for="ph-never">ไม่เคย</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" name="priorHistory" id="ph-similar" value="เคยคล้าย ๆ กัน">
+            <label for="ph-similar">เคยคล้าย ๆ กัน</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" name="priorHistory" id="ph-recur" value="เป็นซ้ำบ่อย">
+            <label for="ph-recur">เป็นซ้ำบ่อย</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="prevScreen()">← ย้อนกลับ</button>
+        <button class="btn btn-primary" onclick="nextScreen('vitals')">บันทึกสัญญาณชีพ →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 7: Vital Signs -->
+  <div class="screen" id="screen-vitals">
+    <div class="card">
+      <h2 class="screen-title">💓 สัญญาณชีพ (ถ้ามี)</h2>
+      <p class="screen-subtitle">ไม่จำเป็นต้องมีเครื่องวัด แต่ถ้ามีค่าที่วัดจริง ระบบจะใช้ช่วยประกอบการประเมิน <strong>ไม่ควรเดาตัวเลข</strong></p>
+
+      <div class="vitals-grid">
+        <div class="vital-card">
+          <div class="vital-label">🌡️ อุณหภูมิ</div>
+          <input type="number" class="vital-input" id="v-temp" step="0.1" placeholder="37.0">
+          <div class="vital-unit">°C</div>
+        </div>
+        <div class="vital-card">
+          <div class="vital-label">💓 ชีพจร</div>
+          <input type="number" class="vital-input" id="v-hr" placeholder="75">
+          <div class="vital-unit">ครั้ง/นาที</div>
+        </div>
+        <div class="vital-card">
+          <div class="vital-label">🫁 SpO₂</div>
+          <input type="number" class="vital-input" id="v-spo2" placeholder="98">
+          <div class="vital-unit">%</div>
+        </div>
+        <div class="vital-card">
+          <div class="vital-label">🩸 ความดันตัวบน</div>
+          <input type="number" class="vital-input" id="v-bps" placeholder="120">
+          <div class="vital-unit">mmHg</div>
+        </div>
+        <div class="vital-card">
+          <div class="vital-label">🌬️ อัตราหายใจ</div>
+          <input type="number" class="vital-input" id="v-rr" placeholder="16">
+          <div class="vital-unit">ครั้ง/นาที</div>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top: 20px;">
+        <label>ความรู้สึกตัวตอนนี้</label>
+        <div class="radio-group">
+          <div class="radio-option">
+            <input type="radio" name="consciousness" id="c-alert" value="รู้ตัวดี" checked>
+            <label for="c-alert">รู้ตัวดี</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" name="consciousness" id="c-confused" value="สับสน">
+            <label for="c-confused">สับสน</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" name="consciousness" id="c-drowsy" value="ซึม/ปลุกยาก">
+            <label for="c-drowsy">ซึม/ปลุกยาก</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" name="consciousness" id="c-unconscious" value="ไม่รู้สึกตัว">
+            <label for="c-unconscious">ไม่รู้สึกตัว</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="prevScreen()">← ย้อนกลับ</button>
+        <button class="btn btn-primary" onclick="generateSummary()">🩺 ให้หมอวิเคราะห์ข้อมูล →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 8: Summary (Doctor View) -->
+  <div class="screen" id="screen-summary">
+    <div class="card">
+      <h2 class="screen-title">📋 สรุปข้อมูลสำหรับพบแพทย์</h2>
+      <p class="screen-subtitle">ใช้เป็น handover ช่วยให้แพทย์เห็นลำดับอาการและสิ่งที่ควรถามต่อ</p>
+
+      <div id="summaryContent"></div>
+
+      <div class="btn-group no-print">
+        <button class="btn btn-secondary" onclick="copySummary()">📋 คัดลอก</button>
+        <button class="btn btn-secondary" onclick="window.print()">🖨️ พิมพ์ / Save PDF</button>
+        <button class="btn btn-danger" onclick="showEmergency()">🚑 โทร 1669</button>
+        <button class="btn btn-primary" onclick="resetAll()">🔄 เริ่มใหม่</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ Floating Emergency Button ============ -->
+<button class="emergency-float no-print" onclick="showEmergency()">
+  🚑 <span>ฉุกเฉิน 1669</span>
+</button>
+
+<!-- ============ Emergency Modal ============ -->
+<div class="modal-overlay" id="emergencyModal">
+  <div class="modal">
+    <div class="modal-icon">🚨</div>
+    <h2>เหตุฉุกเฉินทางการแพทย์</h2>
+    <p style="margin-bottom: 20px; color: var(--text-light);">
+      หากคุณหรือคนใกล้ตัวมีอาการรุนแรง เช่น หมดสติ หายใจไม่ออก เจ็บหน้าอกรุนแรง
+      <br><strong>ให้โทรแจ้งเหตุฉุกเฉินทันที</strong>
+    </p>
+    <a href="tel:1669" class="btn btn-danger" style="text-decoration:none; width:100%; margin-bottom:10px;">
+      📞 โทร 1669
+    </a>
+    <button class="btn btn-secondary" style="width:100%;" onclick="closeEmergency()">ปิด</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   🩺 หมอใจดี AI Clinical Interview - JavaScript Engine
+   ============================================================ */
+
+// ============ STATE MANAGEMENT ============
+const patientRecord = {
+  demographics: { age: null, gender: null, pregnancy: null },
+  chronicDiseases: '',
+  medications: '',
+  chiefComplaints: [],
+  onset: '',
+  progression: '',
+  narrative: '',
+  dynamicAnswers: {},
+  severity: 5,
+  redFlags: [],
+  priorHistory: '',
+  vitals: { temp: null, hr: null, spo2: null, bps: null, rr: null, consciousness: 'รู้ตัวดี' },
+  analysis: { possibleConditions: [], urgency: 'normal', soapNote: '' }
+};
+
+// ============ SYMPTOM DATABASE ============
+const symptomsDB = [
+  { id: 'fever', icon: '🌡️', name: 'ไข้ / ตัวร้อน / หนาวสั่น' },
+  { id: 'headache', icon: '🤕', name: 'ปวดศีรษะ' },
+  { id: 'chestpain', icon: '❤️', name: 'เจ็บ / แน่นหน้าอก' },
+  { id: 'dyspnea', icon: '🫁', name: 'หายใจไม่สะดวก / หอบ' },
+  { id: 'abdpain', icon: '🩻', name: 'ปวดท้อง' },
+  { id: 'gi', icon: '🤢', name: 'คลื่นไส้ / อาเจียน / ท้องเสีย' },
+  { id: 'uri', icon: '😷', name: 'ไอ / เจ็บคอ / น้ำมูก' },
+  { id: 'urinary', icon: '💧', name: 'ปัสสาวะแสบขัด / ปวดเอว' },
+  { id: 'dizziness', icon: '🌀', name: 'เวียนหัว / หน้ามืด / เป็นลม' },
+  { id: 'rash', icon: '🔴', name: 'ผื่น / จุดเลือดออก' }
+];
+
+// ============ DYNAMIC QUESTIONS PER SYMPTOM ============
+const dynamicQuestions = {
+  fever: [
+    { q: 'วัดไข้ได้กี่องศา?', type: 'text', placeholder: 'เช่น 38.5 °C' },
+    { q: 'มีหนาวสั่นร่วมด้วยไหม?', type: 'radio', options: ['มี', 'ไม่มี', 'ไม่แน่ใจ'] },
+    { q: 'มีประวัติสัมผัสคนป่วยหรือเดินทางไปที่เสี่ยงไหม?', type: 'text', placeholder: 'เล่าสั้น ๆ' }
+  ],
+  headache: [
+    { q: 'ปวดบริเวณไหน?', type: 'radio', options: ['ขมับข้างเดียว', 'ทั้งสองข้าง', 'หน้าผาก', 'ท้ายทอย', 'เบ้าตา', 'ทั่วศีรษะ'] },
+    { q: 'ลักษณะการปวดเป็นแบบไหน?', type: 'radio', options: ['ตุบ ๆ', 'บีบรัด', 'เหมือนมีอะไรมารัด', 'แปล๊บ ๆ เหมือนไฟช็อต', 'ตื้อ ๆ'] },
+    { q: 'มีอาการร่วมอะไร?', type: 'checkbox', options: ['คลื่นไส้', 'อาเจียน', 'แพ้อแสง', 'แพ้เสียง', 'ตาแดง/น้ำตาไหล', 'ชา/อ่อนแรง'] },
+    { q: 'อะไรทำให้อาการแย่ลง?', type: 'text', placeholder: 'เช่น การก้ม, ความเครียด, การนอนน้อย' }
+  ],
+  chestpain: [
+    { q: 'ลักษณะการเจ็บเป็นอย่างไร?', type: 'radio', options: ['แน่นเหมือนมีอะไรมากด', 'เจ็บแปล๊บ', 'แสบร้อน', 'ตื้อ ๆ', 'เหมือนถูกบีบ'] },
+    { q: 'ร้าวไปที่ไหน?', type: 'checkbox', options: ['กราม', 'คอ', 'ไหล่ซ้าย', 'แขนซ้าย', 'หลัง', 'ไม่ร้าว'] },
+    { q: 'เป็นตอนไหน?', type: 'radio', options: ['ตอนออกแรง', 'ตอนพัก', 'หลังอาหาร', 'ตอนหายใจเข้าลึก ๆ', 'ตลอดเวลา'] },
+    { q: 'มีอาการร่วม?', type: 'checkbox', options: ['เหงื่อแตก', 'เหงื่อเย็น', 'หายใจไม่ออก', 'หน้ามืด', 'คลื่นไส้'] }
+  ],
+  dyspnea: [
+    { q: 'หายใจไม่ออกตอนไหน?', type: 'radio', options: ['ตอนออกแรง', 'ตอนพัก', 'ตอนนอนราบ', 'ตื่นกลางดึก', 'ตลอดเวลา'] },
+    { q: 'มีเสียงหายใจผิดปกติไหม?', type: 'radio', options: ['มีเสียงวี๊ด', 'มีเสียงครืดคราด', 'ไม่มี', 'ไม่แน่ใจ'] },
+    { q: 'ไอร่วมด้วยไหม?', type: 'radio', options: ['ไอแห้ง', 'ไอมีเสมหะ', 'ไอมีเลือด', 'ไม่ไอ'] },
+    { q: 'วัด SpO₂ ได้เท่าไหร่? (ถ้ามี)', type: 'text', placeholder: 'เช่น 95%' }
+  ],
+  abdpain: [
+    { q: 'ปวดบริเวณไหน?', type: 'radio', options: ['ลิ้นปี่', 'ขวาบน', 'ขวาล่าง', 'ซ้ายบน', 'ซ้ายล่าง', 'รอบสะดือ', 'ท้องน้อย', 'ทั่วท้อง', 'ร้าวไปหลัง'] },
+    { q: 'ลักษณะการปวด?', type: 'radio', options: ['ปวดบิด', 'ปวดตื้อ ๆ', 'ปวดแปล๊บ', 'ปวดแสบ', 'ปวดเหมือนมีของแข็งกด'] },
+    { q: 'สัมพันธ์กับอาหารไหม?', type: 'radio', options: ['ปวดหลังทาน', 'ปวดตอนหิว', 'ไม่สัมพันธ์', 'ทานแล้วแย่ลง'] },
+    { q: 'มีการขับถ่ายผิดปกติไหม?', type: 'checkbox', options: ['ท้องผูก', 'ท้องเสีย', 'ถ่ายดำ', 'ถ่ายเป็นเลือด', 'ไม่มี'] }
+  ],
+  gi: [
+    { q: 'อาเจียนกี่ครั้งแล้ว?', type: 'text', placeholder: 'เช่น 3 ครั้ง' },
+    { q: 'ลักษณะอาเจียน?', type: 'radio', options: ['เป็นอาหาร', 'เป็นน้ำใส', 'เป็นสีเหลือง/เขียว', 'เป็นเลือด', 'เป็นกากกาแฟ'] },
+    { q: 'ถ่ายเหลวกี่ครั้งต่อวัน?', type: 'text', placeholder: 'เช่น 5 ครั้ง' },
+    { q: 'ลักษณะอุจจาระ?', type: 'checkbox', options: ['เหลวเป็นน้ำ', 'มีมูก', 'มีเลือด', 'สีดำ', 'ไม่มีอะไรพิเศษ'] },
+    { q: 'กินน้ำได้ไหม?', type: 'radio', options: ['กินได้ปกติ', 'กินได้น้อย', 'กินไม่ได้เลย/อาเจียนทุกครั้งที่กิน'] }
+  ],
+  uri: [
+    { q: 'ไอมา กี่วันแล้ว?', type: 'text', placeholder: 'เช่น 5 วัน' },
+    { q: 'ลักษณะเสมหะ?', type: 'radio', options: ['ไม่มีเสมหะ', 'เสมหะใส', 'เสมหะเหลือง/เขียว', 'เสมหะเป็นเลือด'] },
+    { q: 'เจ็บคอกลืนลำบากไหม?', type: 'radio', options: ['ไม่เจ็บ', 'เจ็บเล็กน้อย', 'เจ็บมากกลืนลำบาก', 'กลืนไม่ได้เลย'] },
+    { q: 'มีน้ำมูก?', type: 'radio', options: ['ไม่มี', 'น้ำมูกใส', 'น้ำมูกเหลือง/เขียว', 'คัดจมูกมาก'] }
+  ],
+  urinary: [
+    { q: 'ปัสสาวะแสบขัดไหม?', type: 'radio', options: ['แสบขัด', 'ปวดแต่ไม่แสบ', 'ปัสสาวะบ่อย', 'ปัสสาวะไม่สุด', 'ปกติ'] },
+    { q: 'สีปัสสาวะเป็นอย่างไร?', type: 'radio', options: ['เหลืองใส', 'เหลืองเข้ม', 'สีน้ำล้างเนื้อ', 'สีแดง/เป็นเลือด', 'ขุ่น'] },
+    { q: 'ปวดเอว/สีข้างไหม?', type: 'radio', options: ['ปวดข้างเดียว', 'ปวดสองข้าง', 'ไม่ปวด', 'ปวดร้าวลงขาหนีบ'] },
+    { q: 'มีไข้ร่วมด้วยไหม?', type: 'radio', options: ['มีไข้สูง', 'ไข้ต่ำ', 'ไม่มีไข้'] }
+  ],
+  dizziness: [
+    { q: 'ลักษณะเวียนหัวเป็นแบบไหน?', type: 'radio', options: ['บ้านหมุน', 'หน้ามืดวูบ', 'หัวลอย', 'โคลงเคลง', 'จะเป็นลม'] },
+    { q: 'เป็นตอนไหน?', type: 'radio', options: ['ตอนลุกยืน', 'ตอนหันคอ', 'ตลอดเวลา', 'เป็น ๆ หาย ๆ'] },
+    { q: 'มีอาการร่วม?', type: 'checkbox', options: ['คลื่นไส้', 'อาเจียน', 'หูอื้อ', 'การได้ยินลดลง', 'มองเห็นซ้อน', 'อ่อนแรง'] },
+    { q: 'เคยเป็นลม/หมดสติไหม?', type: 'radio', options: ['เคย', 'ไม่เคย'] }
+  ],
+  rash: [
+    { q: 'ผื่นขึ้นที่ไหน?', type: 'text', placeholder: 'เช่น แขนขา, ลำตัว, ทั่วตัว' },
+    { q: 'ลักษณะผื่น?', type: 'checkbox', options: ['นูนแดง', '-flat red spots', 'ตุ่มน้ำ', 'ตุ่มหนอง', 'จุดเลือดออก (กดไม่จาง)', 'คันมาก', 'ไม่คัน'] },
+    { q: 'เริ่มจากตรงไหนก่อน?', type: 'text', placeholder: 'เช่น เริ่มที่หน้าก่อนแล้วลาม' },
+    { q: 'มีไข้หรืออาการป่วยนำมาก่อนไหม?', type: 'radio', options: ['มีไข้ก่อนผื่นขึ้น', 'ผื่นขึ้นพร้อมไข้', 'ไม่มีไข้', 'ไม่แน่ใจ'] }
+  ]
+};
+
+// ============ RED FLAGS ============
+const redFlagsList = [
+  { id: 'rf1', icon: '🫁', text: 'หายใจไม่ออก / พูดเป็นประโยคไม่ได้เพราะหอบ' },
+  { id: 'rf2', icon: '❤️', text: 'เจ็บ/แน่นหน้าอกรุนแรงหรือไม่หาย' },
+  { id: 'rf3', icon: '🧠', text: 'หน้าเบี้ยว แขนขาอ่อนแรง หรือพูดไม่ชัดทันที' },
+  { id: 'rf4', icon: '💥', text: 'ปวดศีรษะรุนแรงมากแบบฉับพลันผิดปกติ' },
+  { id: 'rf5', icon: '😵', text: 'หมดสติ ชัก สับสนมาก หรือปลุกยาก' },
+  { id: 'rf6', icon: '🩸', text: 'เลือดออกมาก / อาเจียนเป็นเลือด / ถ่ายดำหรือถ่ายเป็นเลือด' },
+  { id: 'rf7', icon: '💧', text: 'ดื่มไม่ได้ อาเจียนจนเก็บน้ำไม่ได้ หรือแทบไม่ปัสสาวะ' },
+  { id: 'rf8', icon: '🥶', text: 'ตัวเย็น เหงื่อแตก ซีดมาก หน้ามืดจะเป็นลม หรืออ่อนแรงมาก' },
+  { id: 'rf9', icon: '🤕', text: 'เพิ่งเกิดอุบัติเหตุ/กระแทกศีรษะรุนแรง' }
+];
+
+// ============ SCREEN NAVIGATION ============
+const screens = ['demographics', 'chief-complaints', 'onset', 'detailed', 'severity', 'redflags', 'vitals', 'summary'];
+let currentScreenIndex = 0;
+
+function showScreen(index) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + screens[index]).classList.add('active');
+  currentScreenIndex = index;
+  updateProgress();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function nextScreen(target) {
+  const idx = screens.indexOf(target);
+  if (idx >= 0) {
+    if (target === 'detailed') buildDynamicQuestions();
+    if (target === 'redflags') buildRedFlags();
+    showScreen(idx);
+  }
+}
+
+function prevScreen() {
+  if (currentScreenIndex > 0) showScreen(currentScreenIndex - 1);
+}
+
+function updateProgress() {
+  const percent = ((currentScreenIndex + 1) / screens.length) * 100;
+  document.getElementById('progressFill').style.width = percent + '%';
+  document.getElementById('progressText').textContent = `ขั้นตอนที่ ${currentScreenIndex + 1} จาก ${screens.length}`;
+}
+
+// ============ MODE SWITCH ============
+function switchMode(mode) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.mode-btn[data-mode="${mode}"]`).classList.add('active');
+  if (mode === 'doctor') {
+    document.body.classList.add('doctor-mode');
+  } else {
+    document.body.classList.remove('doctor-mode');
+  }
+}
+
+// ============ INIT: Build Symptom Grid ============
+function buildSymptomGrid() {
+  const grid = document.getElementById('symptomGrid');
+  grid.innerHTML = symptomsDB.map(s => `
+    <div class="symptom-card" data-id="${s.id}" onclick="toggleSymptom('${s.id}', this)">
+      <span class="symptom-icon">${s.icon}</span>
+      <div class="symptom-name">${s.name}</div>
+    </div>
+  `).join('');
+}
+
+function toggleSymptom(id, el) {
+  el.classList.toggle('selected');
+  const idx = patientRecord.chiefComplaints.indexOf(id);
+  if (idx >= 0) patientRecord.chiefComplaints.splice(idx, 1);
+  else patientRecord.chiefComplaints.push(id);
+}
+
+// ============ DYNAMIC QUESTIONS ============
+function buildDynamicQuestions() {
+  const container = document.getElementById('dynamicQuestions');
+  if (patientRecord.chiefComplaints.length === 0) {
+    container.innerHTML = '<div class="alert alert-info">กรุณากลับไปเลือกอาการก่อนหน้า</div>';
+    return;
+  }
+
+  let html = '';
+  patientRecord.chiefComplaints.forEach(symptomId => {
+    const symptom = symptomsDB.find(s => s.id === symptomId);
+    const questions = dynamicQuestions[symptomId] || [];
+    if (questions.length === 0) return;
+
+    html += `<div style="margin-bottom: 24px; padding: 16px; background: #f8fafc; border-radius: var(--radius-sm); border-left: 4px solid var(--primary);">
+      <h3 style="margin-bottom: 12px; color: var(--primary-dark);">${symptom.icon} ${symptom.name}</h3>`;
+
+    questions.forEach((q, qi) => {
+      const key = `${symptomId}_q${qi}`;
+      html += `<div class="form-group"><label>${q.q}</label>`;
+
+      if (q.type === 'text') {
+        html += `<input type="text" data-key="${key}" placeholder="${q.placeholder || ''}" onchange="saveDynamic('${key}', this.value)">`;
+      } else if (q.type === 'radio') {
+        html += '<div class="radio-group">';
+        q.options.forEach((opt, oi) => {
+          html += `<div class="radio-option">
+            <input type="radio" name="${key}" id="${key}_${oi}" value="${opt}" onchange="saveDynamic('${key}', '${opt}')">
+            <label for="${key}_${oi}">${opt}</label>
+          </div>`;
+        });
+        html += '</div>';
+      } else if (q.type === 'checkbox') {
+        html += '<div class="checkbox-group">';
+        q.options.forEach((opt, oi) => {
+          html += `<div class="checkbox-option">
+            <input type="checkbox" id="${key}_${oi}" value="${opt}" onchange="saveCheckbox('${key}', '${opt}', this.checked)">
+            <label for="${key}_${oi}">${opt}</label>
+          </div>`;
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+    });
+
+    html += '</div>';
+  });
+
+  container.innerHTML = html;
+}
+
+function saveDynamic(key, value) {
+  patientRecord.dynamicAnswers[key] = value;
+}
+
+function saveCheckbox(key, value, checked) {
+  if (!patientRecord.dynamicAnswers[key]) patientRecord.dynamicAnswers[key] = [];
+  const arr = patientRecord.dynamicAnswers[key];
+  if (checked && !arr.includes(value)) arr.push(value);
+  if (!checked) {
+    const idx = arr.indexOf(value);
+    if (idx >= 0) arr.splice(idx, 1);
+  }
+}
+
+// ============ SEVERITY SLIDER ============
+function updateSeverity(val) {
+  patientRecord.severity = parseInt(val);
+  const display = document.getElementById('severityDisplay');
+  display.textContent = val;
+  if (val <= 3) display.style.color = '#10b981';
+  else if (val <= 6) display.style.color = '#f59e0b';
+  else display.style.color = '#ef4444';
+}
+
+// ============ RED FLAGS ============
+function buildRedFlags() {
+  const container = document.getElementById('redFlagList');
+  container.innerHTML = redFlagsList.map(rf => `
+    <div class="red-flag-item" onclick="toggleRedFlag('${rf.id}', this)">
+      <span class="red-flag-icon">${rf.icon}</span>
+      <div class="red-flag-text">${rf.text}</div>
+    </div>
+  `).join('');
+}
+
+function toggleRedFlag(id, el) {
+  el.classList.toggle('selected');
+  const idx = patientRecord.redFlags.indexOf(id);
+  if (idx >= 0) patientRecord.redFlags.splice(idx, 1);
+  else patientRecord.redFlags.push(id);
+}
+
+// ============ COLLECT DATA ============
+function collectData() {
+  // Demographics
+  patientRecord.demographics.age = document.getElementById('age').value;
+  const genderEl = document.querySelector('input[name="gender"]:checked');
+  patientRecord.demographics.gender = genderEl ? genderEl.value : null;
+  const pregEl = document.querySelector('input[name="pregnancy"]:checked');
+  patientRecord.demographics.pregnancy = pregEl ? pregEl.value : null;
+  patientRecord.chronicDiseases = document.getElementById('chronicDiseases').value;
+  patientRecord.medications = document.getElementById('medications').value;
+
+  // Onset
+  patientRecord.onset = document.getElementById('onset').value;
+  const progEl = document.querySelector('input[name="progression"]:checked');
+  patientRecord.progression = progEl ? progEl.value : '';
+  patientRecord.narrative = document.getElementById('narrative').value;
+
+  // Prior history
+  const phEl = document.querySelector('input[name="priorHistory"]:checked');
+  patientRecord.priorHistory = phEl ? phEl.value : '';
+
+  // Vitals
+  patientRecord.vitals.temp = document.getElementById('v-temp').value;
+  patientRecord.vitals.hr = document.getElementById('v-hr').value;
+  patientRecord.vitals.spo2 = document.getElementById('v-spo2').value;
+  patientRecord.vitals.bps = document.getElementById('v-bps').value;
+  patientRecord.vitals.rr = document.getElementById('v-rr').value;
+  const cEl = document.querySelector('input[name="consciousness"]:checked');
+  patientRecord.vitals.consciousness = cEl ? cEl.value : 'รู้ตัวดี';
+
+  // Analysis
+  analyzePatient();
+}
+
+// ============ CLINICAL ANALYSIS ENGINE ============
+function analyzePatient() {
+  const p = patientRecord;
+  const conditions = [];
+  let urgency = 'normal';
+
+  // Urgency based on red flags
+  if (p.redFlags.length > 0) {
+    urgency = 'emergency';
+  } else if (p.severity >= 8) {
+    urgency = 'urgent';
+  } else if (p.severity >= 5 || p.progression === 'แย่ลงเร็วมาก') {
+    urgency = 'soon';
+  }
+
+  // Consciousness check
+  if (p.vitals.consciousness !== 'รู้ตัวดี') {
+    urgency = 'emergency';
+  }
+
+  // Vital signs analysis
+  if (p.vitals.spo2 && parseInt(p.vitals.spo2) < 92) urgency = 'emergency';
+  if (p.vitals.temp && parseFloat(p.vitals.temp) >= 39) {
+    conditions.push({ name: 'ไข้สูง (High Fever)', level: 'warning' });
+  }
+  if (p.vitals.bps) {
+    const bps = parseInt(p.vitals.bps);
+    if (bps >= 180 || bps < 90) urgency = 'emergency';
+  }
+
+  // Symptom-based differential diagnosis
+  if (p.chiefComplaints.includes('chestpain')) {
+    if (p.redFlags.includes('rf2') || p.redFlags.includes('rf8')) {
+      conditions.push({ name: '⚠️ สงสัย Acute Coronary Syndrome (ACS)', level: 'high' });
+    }
+    conditions.push({ name: 'เจ็บหน้าอก (Chest Pain)', level: 'warning' });
+  }
+
+  if (p.chiefComplaints.includes('headache')) {
+    if (p.redFlags.includes('rf4')) {
+      conditions.push({ name: '⚠️ สงสัย Subarachnoid Hemorrhage', level: 'high' });
+    }
+    conditions.push({ name: 'ปวดศีรษะ (Headache)', level: 'normal' });
+  }
+
+  if (p.chiefComplaints.includes('dyspnea')) {
+    conditions.push({ name: 'หายใจลำบาก (Dyspnea)', level: 'warning' });
+  }
+
+  if (p.chiefComplaints.includes('abdpain')) {
+    conditions.push({ name: 'ปวดท้อง (Abdominal Pain)', level: 'warning' });
+  }
+
+  if (p.chiefComplaints.includes('fever')) {
+    conditions.push({ name: 'ไข้ (Fever)', level: 'normal' });
+  }
+
+  if (p.chiefComplaints.includes('gi')) {
+    conditions.push({ name: 'อาการทางเดินอาหาร (GI)', level: 'normal' });
+  }
+
+  p.analysis.possibleConditions = conditions;
+  p.analysis.urgency = urgency;
+  p.analysis.soapNote = generateSOAP();
+}
+
+// ============ SOAP NOTE GENERATION ============
+function generateSOAP() {
+  const p = patientRecord;
+
+  // SUBJECTIVE
+  let S = `อายุ ${p.demographics.age || '-'} ปี เพศ ${p.demographics.gender || '-'}\n`;
+  if (p.demographics.pregnancy) S += `ตั้งครรภ์: ${p.demographics.pregnancy}\n`;
+  S += `โรคประจำตัว: ${p.chronicDiseases || '-'}\n`;
+  S += `ยาประจำ/แพ้ยา: ${p.medications || '-'}\n\n`;
+  S += `CC: ${p.chiefComplaints.map(id => symptomsDB.find(s=>s.id===id)?.name).join(', ') || '-'}\n`;
+  S += `Onset: ${p.onset || '-'} | Progression: ${p.progression || '-'}\n`;
+  S += `Severity: ${p.severity}/10\n`;
+  S += `Prior: ${p.priorHistory || '-'}\n\n`;
+  S += `PI: ${p.narrative || '-'}\n\n`;
+
+  // Dynamic answers
+  Object.keys(p.dynamicAnswers).forEach(key => {
+    const val = p.dynamicAnswers[key];
+    if (val && (typeof val === 'string' ? val.trim() : val.length > 0)) {
+      S += `  • ${key}: ${Array.isArray(val) ? val.join(', ') : val}\n`;
+    }
+  });
+
+  // OBJECTIVE
+  let O = `T: ${p.vitals.temp || '-'}°C | HR: ${p.vitals.hr || '-'} bpm\n`;
+  O += `RR: ${p.vitals.rr || '-'} | SpO2: ${p.vitals.spo2 || '-'}%\n`;
+  O += `BP: ${p.vitals.bps || '-'}/- mmHg\n`;
+  O += `Consciousness: ${p.vitals.consciousness}\n`;
+
+  // ASSESSMENT
+  let A = '';
+  if (p.redFlags.length > 0) {
+    A += `🚨 RED FLAGS DETECTED (${p.redFlags.length} items)\n`;
+    p.redFlags.forEach(id => {
+      const rf = redFlagsList.find(r => r.id === id);
+      if (rf) A += `  • ${rf.text}\n`;
+    });
+    A += '\n';
+  }
+  p.analysis.possibleConditions.forEach(c => {
+    A += `${c.level === 'high' ? '🔴' : c.level === 'warning' ? '🟡' : '🟢'} ${c.name}\n`;
+  });
+
+  // PLAN
+  let P = '';
+  if (p.analysis.urgency === 'emergency') {
+    P = '⚠️ URGENT: ส่งต่อห้องฉุกเฉินทันที (ER now)\n';
+    P += '• Monitor vital signs closely\n• IV access, O2 if needed\n';
+  } else if (p.analysis.urgency === 'urgent') {
+    P = '🟡 พบแพทย์ภายใน 24 ชั่วโมง\n';
+  } else if (p.analysis.urgency === 'soon') {
+    P = '🟢 นัดพบแพทย์ภายใน 1-3 วัน\n';
+  } else {
+    P = '✅ ติดตามอาการ แนะนำพบแพทย์หากอาการไม่ดีขึ้นใน 3-5 วัน\n';
+  }
+
+  return `===== SOAP NOTE =====\n\n[S] SUBJECTIVE\n${S}\n[O] OBJECTIVE\n${O}\n[A] ASSESSMENT\n${A}\n[P] PLAN\n${P}`;
+}
+
+// ============ GENERATE SUMMARY ============
+function generateSummary() {
+  collectData();
+  const p = patientRecord;
+
+  let html = '';
+
+  // Urgency Alert
+  if (p.analysis.urgency === 'emergency') {
+    html += `<div class="alert alert-danger">
+      <span style="font-size:1.5rem;">🚨</span>
+      <div><strong>กรณีฉุกเฉิน:</strong> แนะนำให้ไปโรงพยาบาลทันที หรือโทร 1669</div>
+    </div>`;
+  } else if (p.analysis.urgency === 'urgent') {
+    html += `<div class="alert alert-warning">
+      <span style="font-size:1.5rem;">⚠️</span>
+      <div><strong>ควรพบแพทย์ภายใน 24 ชั่วโมง</strong></div>
+    </div>`;
+  }
+
+  // Demographics
+  html += `<div class="summary-section">
+    <h3>👤 ข้อมูลผู้ป่วย</h3>
+    <ul class="summary-list">
+      <li>อายุ: ${p.demographics.age || '-'} ปี | เพศ: ${p.demographics.gender || '-'}</li>
+      ${p.demographics.pregnancy ? `<li>ตั้งครรภ์: ${p.demographics.pregnancy}</li>` : ''}
+      <li>โรคประจำตัว: ${p.chronicDiseases || '-'}</li>
+      <li>ยาประจำ/แพ้ยา: ${p.medications || '-'}</li>
+    </ul>
+  </div>`;
+
+  // Chief Complaints
+  html += `<div class="summary-section">
+    <h3>📋 อาการหลัก</h3>
+    <ul class="summary-list">
+      ${p.chiefComplaints.map(id => {
+        const s = symptomsDB.find(x => x.id === id);
+        return `<li>${s.icon} ${s.name}</li>`;
+      }).join('')}
+    </ul>
+  </div>`;
+
+  // History
+  html += `<div class="summary-section">
+    <h3>⏰ ประวัติอาการ</h3>
+    <ul class="summary-list">
+      <li>เริ่มเมื่อ: ${p.onset || '-'}</li>
+      <li>แนวโน้ม: ${p.progression || '-'}</li>
+      <li>ความรุนแรง: ${p.severity}/10</li>
+      <li>ประวัติเคยเป็น: ${p.priorHistory || '-'}</li>
+      ${p.narrative ? `<li>เล่าอาการ: "${p.narrative}"</li>` : ''}
+    </ul>
+  </div>`;
+
+  // Red Flags
+  if (p.redFlags.length > 0) {
+    html += `<div class="summary-section danger">
+      <h3>🚨 สัญญาณอันตรายที่พบ</h3>
+      <ul class="summary-list">
+        ${p.redFlags.map(id => {
+          const rf = redFlagsList.find(r => r.id === id);
+          return `<li>${rf.icon} ${rf.text}</li>`;
+        }).join('')}
+      </ul>
+    </div>`;
+  }
+
+  // Vitals
+  html += `<div class="summary-section">
+    <h3>💓 สัญญาณชีพ</h3>
+    <ul class="summary-list">
+      <li>อุณหภูมิ: ${p.vitals.temp || '-'} °C</li>
+      <li>ชีพจร: ${p.vitals.hr || '-'} bpm</li>
+      <li>SpO₂: ${p.vitals.spo2 || '-'} %</li>
+      <li>ความดัน: ${p.vitals.bps || '-'}/- mmHg</li>
+      <li>หายใจ: ${p.vitals.rr || '-'} ครั้ง/นาที</li>
+      <li>ความรู้สึกตัว: ${p.vitals.consciousness}</li>
+    </ul>
+  </div>`;
+
+  // Doctor-only: Analysis
+  html += `<div class="summary-section doctor-only">
+    <h3>🧠 การวิเคราะห์เบื้องต้น</h3>
+    <div style="margin-bottom: 10px;">
+      <strong>ระดับความเร่งด่วน:</strong>
+      <span class="analysis-badge ${p.analysis.urgency === 'emergency' ? 'high' : ''}">
+        ${p.analysis.urgency === 'emergency' ? '🚨 Emergency' :
+          p.analysis.urgency === 'urgent' ? '⚠️ Urgent (24h)' :
+          p.analysis.urgency === 'soon' ? '🟡 Soon (1-3 days)' : '✅ Routine'}
+      </span>
+    </div>
+    <div>
+      <strong>การวินิจฉัยแยกโรคที่เป็นไปได้:</strong><br>
+      ${p.analysis.possibleConditions.map(c =>
+        `<span class="analysis-badge ${c.level === 'high' ? 'high' : ''}">${c.name}</span>`
+      ).join('') || '<em>ไม่พบข้อมูลเพียงพอ</em>'}
+    </div>
+  </div>`;
+
+  // SOAP Note (Doctor-only)
+  html += `<div class="doctor-only">
+    <h3 style="color: var(--primary-dark); margin: 20px 0 10px;">📝 SOAP Note (สำหรับแพทย์)</h3>
+    <div class="soap-note">${p.analysis.soapNote}</div>
+  </div>`;
+
+  document.getElementById('summaryContent').innerHTML = html;
+  showScreen(screens.indexOf('summary'));
+}
+
+// ============ COPY SUMMARY ============
+function copySummary() {
+  const text = patientRecord.analysis.soapNote;
+  navigator.clipboard.writeText(text).then(() => {
+    alert('✅ คัดลอก SOAP Note แล้ว');
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('✅ คัดลอกแล้ว');
+  });
+}
+
+// ============ EMERGENCY MODAL ============
+function showEmergency() {
+  document.getElementById('emergencyModal').classList.add('active');
+}
+
+function closeEmergency() {
+  document.getElementById('emergencyModal').classList.remove('active');
+}
+
+// ============ RESET ============
+function resetAll() {
+  if (!confirm('ต้องการเริ่มใหม่หรือไม่? ข้อมูลทั้งหมดจะหายไป')) return;
+  location.reload();
+}
+
+// ============ INIT ============
+window.addEventListener('DOMContentLoaded', () => {
+  buildSymptomGrid();
+
+  // Pregnancy field toggle
+  document.querySelectorAll('input[name="gender"]').forEach(el => {
+    el.addEventListener('change', () => {
+      const show = el.value === 'หญิง' && el.checked;
+      document.getElementById('pregnancy-group').style.display = show ? 'block' : 'none';
+    });
+  });
+
+  updateProgress();
+});
+</script>
+
+</body>
+</html>
