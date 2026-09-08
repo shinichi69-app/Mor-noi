@@ -653,6 +653,28 @@
     color: var(--danger-dark);
     margin-bottom: 12px;
   }
+
+/* ===== ADVANCED CLINICAL REVIEW v2 ===== */
+.clinical-review{margin-top:20px}
+.clinical-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.clinical-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+.clinical-card h3{margin-bottom:10px;color:var(--primary-dark)}
+.diagnosis-row{border:1px solid var(--border);border-radius:12px;padding:14px;margin:10px 0;background:#fbfdff}
+.diagnosis-head{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.probability{font-weight:800;color:var(--primary)}
+.reason{color:var(--text-light);font-size:.92rem;margin-top:5px}
+.evidence-list,.question-list,.test-list{padding-left:20px;margin:8px 0}
+.evidence-list li,.question-list li,.test-list li{margin:7px 0}
+.source-chip{display:inline-block;padding:7px 10px;border-radius:999px;background:var(--primary-light);color:var(--primary-dark);text-decoration:none;margin:4px;font-size:.85rem;font-weight:700}
+.source-chip:hover{filter:brightness(.97)}
+.clinical-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.api-status{font-size:.86rem;padding:8px 12px;border-radius:8px;background:#f1f5f9;color:#475569}
+.api-status.ok{background:#dcfce7;color:#166534}
+.api-status.err{background:#fee2e2;color:#991b1b}
+.review-disclaimer{font-size:.82rem;color:#64748b;background:#f8fafc;border-left:4px solid #94a3b8;padding:10px 12px;margin-top:12px}
+textarea.api-box{min-height:72px;font-family:Consolas,monospace;font-size:.88rem}
+@media(max-width:600px){.diagnosis-head{align-items:flex-start;flex-direction:column}}
+
 </style>
 </head>
 <body>
@@ -963,6 +985,47 @@
     </div>
   </div>
 
+</div>
+
+
+<!-- ===== ADVANCED CLINICAL REVIEW ===== -->
+<div class="card clinical-review doctor-only" id="advancedClinicalReview">
+  <h2 class="screen-title">🧠 Clinical Decision Support — วิเคราะห์เชิงลึก</h2>
+  <p class="screen-subtitle">ส่วนนี้ไม่ใช่การสรุปอาการอย่างเดียว แต่จัดข้อมูลเพื่อช่วยแพทย์สร้าง differential diagnosis, หา missing data และวางแผนตรวจยืนยัน</p>
+  <div id="clinicalReviewContent">
+    <div class="alert alert-info">กด “วิเคราะห์เชิงลึก” หลังซักประวัติเสร็จ เพื่อประเมินข้อมูลทั้งหมด</div>
+  </div>
+  <div class="clinical-toolbar no-print">
+    <button class="btn btn-primary" onclick="runAdvancedClinicalReview()">🧠 วิเคราะห์เชิงลึก</button>
+    <button class="btn btn-secondary" onclick="openApiSettings()">⚙️ ตั้งค่า AI API</button>
+  </div>
+  <div id="apiStatus" class="api-status" style="margin-top:10px">AI: ยังไม่ได้เชื่อมต่อ — ใช้ local clinical engine ได้</div>
+  <div class="review-disclaimer">
+    ระบบนี้เป็น Clinical Decision Support เพื่อช่วยบุคลากรทางการแพทย์ ไม่ควรใช้แทนการตรวจร่างกาย การตรวจทางห้องปฏิบัติการ หรือการตัดสินใจของแพทย์ และไม่ควรถือผล AI เป็นการวินิจฉัยยืนยัน
+  </div>
+</div>
+
+<div class="modal-overlay" id="apiSettingsModal">
+  <div class="modal" style="max-width:650px;text-align:left">
+    <h2 style="color:var(--primary-dark)">⚙️ AI Clinical API</h2>
+    <p style="color:var(--text-light);margin-bottom:14px">แนะนำให้ใช้ Backend/Proxy ของคุณเอง ห้ามฝัง API secret ของผู้ให้บริการ AI ลงในไฟล์ HTML ที่แจกผู้ใช้</p>
+    <div class="form-group">
+      <label>API Endpoint</label>
+      <input type="text" id="apiEndpoint" placeholder="/api/clinical-analyze">
+    </div>
+    <div class="form-group">
+      <label>API Key (ถ้าจำเป็น — เก็บเฉพาะ session นี้)</label>
+      <input type="password" id="apiKey" placeholder="ไม่แนะนำให้ใส่ secret key ใน production frontend">
+    </div>
+    <div class="form-group">
+      <label>รูปแบบคำสั่งระบบเพิ่มเติม</label>
+      <textarea id="apiInstruction" class="api-box">วิเคราะห์เพื่อช่วยแพทย์เท่านั้น: สร้าง differential diagnosis แบบจัดลำดับ, ระบุเหตุผลจากข้อมูลที่มี, ข้อมูลที่ยังขาด, การตรวจร่างกายที่ควรทำ, การตรวจเพิ่มเติมที่อาจช่วยยืนยัน/แยกโรค และ red flags ห้ามยืนยันการวินิจฉัยจากประวัติอย่างเดียว</textarea>
+    </div>
+    <div class="clinical-toolbar">
+      <button class="btn btn-primary" onclick="saveApiSettings()">บันทึก</button>
+      <button class="btn btn-secondary" onclick="closeApiSettings()">ปิด</button>
+    </div>
+  </div>
 </div>
 
 <!-- ============ Floating Emergency Button ============ -->
@@ -1566,6 +1629,301 @@ window.addEventListener('DOMContentLoaded', () => {
 
   updateProgress();
 });
+
+/* ============================================================
+   ADVANCED CLINICAL REVIEW v2
+   Architecture:
+   1) deterministic safety/local reasoning
+   2) missing-information detection
+   3) differential diagnosis framework
+   4) suggested physical exam / tests
+   5) optional AI backend for evidence synthesis
+   ============================================================ */
+
+const CLINICAL_API = {
+  endpoint: localStorage.getItem('morClinicalApiEndpoint') || '',
+  key: sessionStorage.getItem('morClinicalApiKey') || '',
+  instruction: localStorage.getItem('morClinicalApiInstruction') ||
+    'วิเคราะห์เพื่อช่วยแพทย์เท่านั้น: สร้าง differential diagnosis แบบจัดลำดับ, ระบุเหตุผลจากข้อมูลที่มี, ข้อมูลที่ยังขาด, การตรวจร่างกายที่ควรทำ, การตรวจเพิ่มเติมที่อาจช่วยยืนยัน/แยกโรค และ red flags ห้ามยืนยันการวินิจฉัยจากประวัติอย่างเดียว'
+};
+
+function openApiSettings(){
+  document.getElementById('apiEndpoint').value=CLINICAL_API.endpoint;
+  document.getElementById('apiKey').value='';
+  document.getElementById('apiInstruction').value=CLINICAL_API.instruction;
+  document.getElementById('apiSettingsModal').classList.add('active');
+}
+function closeApiSettings(){document.getElementById('apiSettingsModal').classList.remove('active')}
+function saveApiSettings(){
+  CLINICAL_API.endpoint=document.getElementById('apiEndpoint').value.trim();
+  CLINICAL_API.key=document.getElementById('apiKey').value.trim();
+  CLINICAL_API.instruction=document.getElementById('apiInstruction').value.trim();
+  localStorage.setItem('morClinicalApiEndpoint',CLINICAL_API.endpoint);
+  localStorage.setItem('morClinicalApiInstruction',CLINICAL_API.instruction);
+  if(CLINICAL_API.key) sessionStorage.setItem('morClinicalApiKey',CLINICAL_API.key);
+  else sessionStorage.removeItem('morClinicalApiKey');
+  closeApiSettings();
+  setApiStatus(CLINICAL_API.endpoint?'ตั้งค่า AI endpoint แล้ว':'ยังใช้ local clinical engine',CLINICAL_API.endpoint?'ok':'');
+}
+function setApiStatus(text,cls=''){
+  const el=document.getElementById('apiStatus'); if(!el)return;
+  el.className='api-status '+cls; el.textContent='AI: '+text;
+}
+
+function getAnswer(id){
+  return patientRecord.dynamicAnswers[id];
+}
+function allClinicalText(){
+  const p=patientRecord;
+  const complaints=p.chiefComplaints.map(id=>symptomsDB.find(x=>x.id===id)?.name).filter(Boolean).join(', ');
+  const answers=Object.entries(p.dynamicAnswers).map(([k,v])=>`${k}: ${Array.isArray(v)?v.join(', '):v}`).join('\n');
+  return `อายุ ${p.demographics.age||'-'} เพศ ${p.demographics.gender||'-'}
+โรคประจำตัว: ${p.chronicDiseases||'-'}
+ยา/แพ้ยา: ${p.medications||'-'}
+อาการหลัก: ${complaints||'-'}
+เริ่มอาการ: ${p.onset||'-'}
+แนวโน้ม: ${p.progression||'-'}
+ความรุนแรง: ${p.severity}/10
+ประวัติเคยเป็น: ${p.priorHistory||'-'}
+อาการเล่าเอง: ${p.narrative||'-'}
+คำตอบเจาะลึก:
+${answers||'-'}
+Red flags: ${p.redFlags.map(id=>redFlagsList.find(x=>x.id===id)?.text).filter(Boolean).join(' | ')||'ไม่พบ'}
+Vital signs: T=${p.vitals.temp||'-'}, HR=${p.vitals.hr||'-'}, SpO2=${p.vitals.spo2||'-'}, BP=${p.vitals.bps||'-'}, RR=${p.vitals.rr||'-'}, consciousness=${p.vitals.consciousness}`;
+}
+
+function localClinicalReasoning(){
+  const p=patientRecord, out=[];
+  const add=(name,score,reason,missing=[],exam=[],tests=[],danger=false)=>{
+    out.push({name,score,reason,missing,exam,tests,danger});
+  };
+  const has=id=>p.chiefComplaints.includes(id);
+  const da=Object.values(p.dynamicAnswers).flat().join(' ');
+
+  if(has('chestpain')){
+    add('Acute coronary syndrome (ACS)', 
+      (p.redFlags.includes('rf2')||/ออกแรง|แน่น|เหงื่อเย็น|แขนซ้าย|กราม/.test(da))?85:55,
+      'ต้องแยกภาวะหัวใจขาดเลือดจากลักษณะเจ็บหน้าอกและอาการร่วม',
+      ['ECG/ลักษณะอาการสัมพันธ์กับ exertion ยังไม่ครบ','ประวัติปัจจัยเสี่ยงหัวใจ','ผล troponin หากแพทย์เห็นข้อบ่งชี้'],
+      ['vital signs','cardiovascular exam','lung exam'],
+      ['12-lead ECG','cardiac biomarkers ตาม clinical context'],true);
+    add('Gastroesophageal reflux / esophageal cause',/หลังอาหาร|แสบร้อน/.test(da)?65:30,
+      'พิจารณาเมื่อสัมพันธ์อาหารหรือมีลักษณะแสบร้อน',
+      ['สัมพันธ์อาหาร/ท่านอน','ประวัติ heartburn/regurgitation'],
+      ['abdominal exam','cardiorespiratory exam'],
+      [],false);
+    add('Musculoskeletal chest pain',/แปล๊บ|กด/.test(da)?55:25,
+      'พิจารณาเมื่อสัมพันธ์การเคลื่อนไหวหรือ reproducible pain',
+      ['เจ็บเมื่อกดหรือขยับ','ประวัติการใช้งาน/บาดเจ็บ'],
+      ['chest wall examination'],[],false);
+  }
+  if(has('headache')){
+    add('Primary headache disorder (migraine/tension)',/ตุบ|แพ้อแสง|แพ้เสียง|ขมับ/.test(da)?65:45,
+      'รูปแบบตำแหน่งและอาการร่วมช่วยจัดกลุ่ม primary headache',
+      ['duration/frequency','neurologic symptoms','ยาแก้ปวดที่ใช้'],
+      ['complete neurologic exam','fundoscopy when indicated'],
+      ['เพิ่มเติมตาม red flags/clinical findings'],false);
+    add('Secondary headache — intracranial/vascular cause',p.redFlags.includes('rf4')||/อ่อนแรง|มองเห็นซ้อน|สับสน/.test(da)?90:25,
+      'ต้องคัดกรองเมื่อมี thunderclap, neurologic deficit หรือ red flags',
+      ['exact time-to-peak','neurologic examination','BP'],
+      ['full neurologic exam','fundoscopy'],
+      ['urgent neuroimaging/other tests ตาม clinical context'],p.redFlags.includes('rf4'));
+  }
+  if(has('dyspnea')){
+    add('Acute respiratory/cardiopulmonary process',p.redFlags.includes('rf1')||Number(p.vitals.spo2)<92?90:55,
+      'ประเมิน oxygenation, respiratory effort และ pattern ของ dyspnea',
+      ['exercise tolerance','orthopnea/PND','chest pain','smoking/asthma/COPD history'],
+      ['work of breathing','lung auscultation','cardiac exam','peripheral edema'],
+      ['pulse oximetry','ECG/CXR/labs ตาม differential'],p.redFlags.includes('rf1'));
+    add('Asthma/bronchospasm',/วี๊ด|ตอนออกแรง/.test(da)?60:30,
+      'มี wheeze หรือ episodic dyspnea จะเพิ่มความเป็นไปได้',
+      ['previous episodes','trigger','response to bronchodilator'],
+      ['lung auscultation'],
+      ['spirometry when stable/appropriate'],false);
+  }
+  if(has('abdpain')){
+    add('Acute abdominal pathology',p.redFlags.includes('rf6')||/ขวาล่าง|ขวาบน|ร้าวไปหลัง/.test(da)?70:50,
+      'ตำแหน่งปวดและ associated GI findings ใช้กำหนด differential ต่อ',
+      ['migration of pain','fever','vomiting','pregnancy possibility','bowel/urinary symptoms'],
+      ['abdominal inspection/auscultation/palpation/percussion','hydration'],
+      ['CBC/CMP/urinalysis/imaging/pregnancy test ตาม clinical context'],false);
+    add('Gastrointestinal inflammatory/infectious cause',/ท้องเสีย|อาเจียน|ไข้/.test(da)?65:35,
+      'มี GI symptoms ร่วมสนับสนุนกลุ่มโรคทางเดินอาหาร',
+      ['stool characteristics','sick contacts','food exposure'],
+      ['hydration and abdominal exam'],
+      ['labs/stool testing when indicated'],false);
+  }
+  if(has('fever')){
+    add('Infectious syndrome — source not yet localized',/หนาวสั่น/.test(da)?65:50,
+      'ไข้ต้องหาตำแหน่งติดเชื้อจากระบบต่าง ๆ ไม่ควรสรุปโรคจากไข้เพียงอย่างเดียว',
+      ['localizing symptoms','exposure/travel','medication history'],
+      ['full vital signs','skin/ENT/chest/abdomen/urinary exam as indicated'],
+      ['CBC/urinalysis/CXR/cultures or targeted tests according to source'],false);
+  }
+  if(has('gi')){
+    add('Acute gastroenteritis / food-borne illness',/ถ่ายเหลว|อาเจียน|กินได้น้อย/.test(da)?70:45,
+      'ลักษณะอาเจียน/ถ่ายและการรับน้ำช่วยประเมิน infectious GI syndrome และ dehydration',
+      ['duration','exposure','blood/mucus','urine output'],
+      ['hydration status','abdominal exam'],
+      ['electrolytes/renal function or stool testing when indicated'],false);
+  }
+  if(has('urinary')){
+    add('Urinary tract infection / pyelonephritis spectrum',/แสบขัด|ปัสสาวะบ่อย|ไข้/.test(da)?75:45,
+      'urinary symptoms plus fever/flank pain can shift concern toward upper tract infection',
+      ['flank pain','fever pattern','pregnancy','previous UTI'],
+      ['abdominal/CVA tenderness','vitals'],
+      ['urinalysis ± culture; other tests according to severity'],false);
+    add('Urolithiasis',/ร้าวลงขาหนีบ|สีแดง/.test(da)?65:30,
+      'colicky flank pain with radiation/hematuria can support stone disease',
+      ['colicky pattern','stone history','hydration'],
+      ['abdominal/flank exam'],
+      ['urinalysis and imaging when indicated'],false);
+  }
+  if(has('dizziness')){
+    add('Vestibular disorder',/บ้านหมุน|หันคอ|หูอื้อ/.test(da)?70:40,
+      'true vertigo and positional triggers favor vestibular causes',
+      ['duration of episodes','hearing loss','nystagmus'],
+      ['neurologic exam','gait','nystagmus/vestibular exam'],
+      ['targeted vestibular assessment; imaging if central red flags'],false);
+    add('Presyncope/cardiovascular or orthostatic cause',/หน้ามืด|จะเป็นลม|ลุกยืน/.test(da)?70:40,
+      'lightheadedness related to standing suggests hemodynamic/orthostatic differential',
+      ['medications','fluid intake','palpitations','syncope'],
+      ['orthostatic vitals','cardiac exam','neurologic exam'],
+      ['ECG and targeted labs when indicated'],false);
+  }
+  if(has('rash')){
+    add('Infectious/inflammatory dermatologic eruption',/ไข้ก่อนผื่น|นูนแดง/.test(da)?60:45,
+      'distribution, morphology and systemic symptoms determine the differential',
+      ['drug exposure','mucosal involvement','blanching','pain vs itch'],
+      ['complete skin exam','mucosa','vital signs'],
+      ['targeted labs/tests only when clinically indicated'],false);
+    add('Serious cutaneous adverse/systemic reaction',/ตุ่มน้ำ|จุดเลือดออก|ไม่จาง|แผล/.test(da)?85:20,
+      'non-blanching lesions, blistering or systemic illness require urgent clinical assessment',
+      ['new drugs','mucosal lesions','skin pain','fever'],
+      ['skin/mucosal exam','vital signs'],
+      ['urgent targeted workup based on examination'],true);
+  }
+
+  if(!out.length) add('Insufficient data for meaningful differential',10,
+    'ยังไม่มีอาการหลักเพียงพอสำหรับจัด differential diagnosis',
+    ['chief complaint','onset','associated symptoms'],['complete basic exam'],[],false);
+
+  out.sort((a,b)=>b.score-a.score);
+  return out.slice(0,8);
+}
+
+function missingData(){
+  const p=patientRecord, m=[];
+  if(!p.onset) m.push('เวลาที่เริ่มอาการและรูปแบบการเปลี่ยนแปลง');
+  if(!p.narrative) m.push('คำบรรยายอาการด้วยภาษาผู้ป่วย');
+  if(!p.chronicDiseases) m.push('โรคประจำตัว/ประวัติสำคัญ');
+  if(!p.medications) m.push('ยาประจำ ยาซื้อเอง อาหารเสริม และประวัติแพ้ยา');
+  if(!p.vitals.temp && !p.vitals.hr && !p.vitals.spo2 && !p.vitals.bps) m.push('สัญญาณชีพที่วัดจริง');
+  if(p.demographics.age && Number(p.demographics.age)>=50) m.push('ปัจจัยเสี่ยงตามอายุ/โรคร่วมที่เกี่ยวข้องกับ complaint');
+  return m;
+}
+
+function renderClinicalReview(items, source='local'){
+  const p=patientRecord;
+  const html=`
+    <div class="alert ${p.analysis.urgency==='emergency'?'alert-danger':'alert-info'}">
+      <strong>${p.analysis.urgency==='emergency'?'🚨 Red flag / Emergency':'🧭 Working assessment'}</strong>
+      — ${p.analysis.urgency==='emergency'?'ต้องประเมินโดยแพทย์ทันที':'ใช้ผลนี้เป็นกรอบสำหรับการตรวจต่อ ไม่ใช่ diagnosis ยืนยัน'}
+    </div>
+    <div class="clinical-grid">
+      <div class="clinical-card">
+        <h3>1. Differential diagnosis</h3>
+        ${items.map((x,i)=>`<div class="diagnosis-row">
+          <div class="diagnosis-head"><strong>${i+1}. ${x.name}</strong><span class="probability">${x.score||'-'}%</span></div>
+          <div class="reason">${x.reason||''}</div>
+        </div>`).join('')}
+      </div>
+      <div class="clinical-card">
+        <h3>2. ข้อมูลที่ยังขาด</h3>
+        <ul class="question-list">${missingData().map(x=>`<li>${x}</li>`).join('')||'<li>ข้อมูลหลักค่อนข้างครบในระดับ screening</li>'}</ul>
+        <h3 style="margin-top:16px">3. คำถามที่ควรถามต่อ</h3>
+        <ul class="question-list">${[...new Set(items.flatMap(x=>x.missing||[]))].slice(0,10).map(x=>`<li>${x}</li>`).join('')||'<li>ไม่มีคำถามเพิ่มจาก local engine</li>'}</ul>
+      </div>
+    </div>
+    <div class="clinical-grid" style="margin-top:14px">
+      <div class="clinical-card">
+        <h3>4. การตรวจร่างกายที่ควรพิจารณา</h3>
+        <ul class="test-list">${[...new Set(items.flatMap(x=>x.exam||[]))].map(x=>`<li>${x}</li>`).join('')||'<li>ตรวจร่างกายตาม complaint</li>'}</ul>
+      </div>
+      <div class="clinical-card">
+        <h3>5. การตรวจเพิ่มเติมเพื่อแยก/ยืนยัน</h3>
+        <ul class="test-list">${[...new Set(items.flatMap(x=>x.tests||[]))].map(x=>`<li>${x}</li>`).join('')||'<li>เลือกตรวจตาม differential และ findings จริง</li>'}</ul>
+      </div>
+    </div>
+    <div class="clinical-card" style="margin-top:14px">
+      <h3>6. Evidence search</h3>
+      <p style="color:var(--text-light)">ใช้คำค้นจากอาการหลักเพื่อเปิดฐานข้อมูล/แนวทางที่ควรตรวจสอบโดยแพทย์</p>
+      ${evidenceLinks().map(x=>`<a class="source-chip" target="_blank" rel="noopener" href="${x.url}">${x.name}</a>`).join('')}
+      <div style="margin-top:10px;font-size:.8rem;color:#64748b">Engine: ${source}</div>
+    </div>`;
+  document.getElementById('clinicalReviewContent').innerHTML=html;
+}
+
+function evidenceLinks(){
+  const q=encodeURIComponent(patientRecord.chiefComplaints.map(id=>symptomsDB.find(s=>s.id===id)?.name||id).join(' '));
+  return [
+    {name:'WHO Guidelines',url:'https://www.who.int/publications/who-guidelines'},
+    {name:'WHO SMART Guidelines',url:'https://smart.who.int/'},
+    {name:'NCBI / PubMed search',url:'https://pubmed.ncbi.nlm.nih.gov/?term='+q},
+    {name:'NICE search',url:'https://www.nice.org.uk/search?q='+q}
+  ];
+}
+
+async function runAdvancedClinicalReview(){
+  collectData();
+  const local=localClinicalReasoning();
+  renderClinicalReview(local,'Local clinical reasoning engine');
+  setApiStatus('กำลังส่งข้อมูลให้ AI backend...','');
+  if(!CLINICAL_API.endpoint){
+    setApiStatus('ไม่ได้ตั้ง endpoint — แสดงผลจาก local engine','');
+    return;
+  }
+  try{
+    const headers={'Content-Type':'application/json'};
+    if(CLINICAL_API.key) headers['Authorization']='Bearer '+CLINICAL_API.key;
+    const res=await fetch(CLINICAL_API.endpoint,{method:'POST',headers,body:JSON.stringify({
+      patient:patientRecord,
+      clinicalText:allClinicalText(),
+      instruction:CLINICAL_API.instruction,
+      task:'clinical_differential_and_evidence_review'
+    })});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    const aiItems=(data.differential||data.possibleConditions||[]).map((x,i)=>({
+      name:x.name||x.diagnosis||('Condition '+(i+1)),
+      score:x.probability??x.score??'-',
+      reason:x.reason||x.rationale||'',
+      missing:x.missing||x.missingData||[],
+      exam:x.exam||x.physicalExam||[],
+      tests:x.tests||x.investigations||[],
+      danger:x.danger||false
+    }));
+    if(aiItems.length){
+      patientRecord.analysis.aiReview=data;
+      renderClinicalReview(aiItems,'AI backend + local safety screen');
+      setApiStatus('เชื่อมต่อ AI สำเร็จ','ok');
+    }else{
+      setApiStatus('AI ตอบกลับแต่ไม่มี differential ที่อ่านได้ — ใช้ local engine','err');
+    }
+  }catch(err){
+    console.error(err);
+    setApiStatus('AI endpoint ใช้งานไม่ได้: '+err.message+' — ใช้ local engine ต่อ','err');
+  }
+}
+
+/* Replace the original doctor summary with a deeper workflow */
+const originalGenerateSummary = window.generateSummary;
+window.generateSummary = function(){
+  collectData();
+  originalGenerateSummary();
+  setTimeout(()=>runAdvancedClinicalReview(),50);
+};
+
 </script>
 
 </body>
