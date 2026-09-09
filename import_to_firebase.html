@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Clinical KB to Firebase</title>
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background: #f0f9ff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); text-align: center; max-width: 500px; }
+        h2 { color: #1e40af; margin-bottom: 10px; }
+        p { color: #64748b; margin-bottom: 30px; }
+        button { background: linear-gradient(135deg, #2563eb, #1e40af); color: white; border: none; padding: 15px 30px; font-size: 1.1rem; font-weight: bold; border-radius: 10px; cursor: pointer; transition: 0.3s; width: 100%; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4); }
+        button:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; box-shadow: none; }
+        #status { margin-top: 20px; font-weight: bold; color: #10b981; min-height: 24px; }
+        .error { color: #ef4444 !important; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>🩺 Mor Noi Data Importer</h2>
+    <p>นำเข้าฐานข้อมูลโรคเชิงลึก (Clinical Knowledge Base) จาก PDF สู่ Firebase Firestore</p>
+    <button id="importBtn" onclick="importData()">🚀 Import ข้อมูลโรคลง Firebase</button>
+    <div id="status"></div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script>
+    // 1. Firebase Config ของคุณ
+    const firebaseConfig = {
+        apiKey: "AIzaSyBoElKLMwgrtUiy52aoXwKwlVrs7hlvIUA",
+        authDomain: "doctor-app-34889.firebaseapp.com",
+        projectId: "doctor-app-34889",
+        storageBucket: "doctor-app-34889.firebasestorage.app",
+        messagingSenderId: "526663189965",
+        appId: "1:526663189965:web:50705eb6b57121d98c3084",
+        measurementId: "G-QWQPE99L8G"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // 2. ฐานข้อมูลโรคที่สกัดจาก PDF ของคุณ (Clinical Knowledge Base)
+    const clinicalKB = [
+        {
+            id: "CAP",
+            name_th: "ปอดอักเสบจากชุมชน",
+            name_en: "Community-Acquired Pneumonia",
+            category: "Respiratory",
+            sources: ["NICE NG250", "ATS/IDSA 2019"],
+            keywords: ["fever", "uri", "dyspnea", "chestpain"], // Map กับ ID ใน symptomsDB
+            diagnostic_criteria: {
+                required_symptoms: ["COUGH", "FEVER"],
+                optional_symptoms: ["DYSPNEA", "CHEST_PAIN", "SPUTUM"],
+                clinical_signs: ["AUSCULTATION_CRACKLES", "TACHYPNEA_GE_24"]
+            },
+            red_flags: ["SPO2_BELOW_90", "CONFUSION", "SBP_BELOW_90", "RR_GE_30"],
+            severity_scoring: {
+                system: "CURB65",
+                variables: [
+                    { code: "CONFUSION", weight: 1 },
+                    { code: "UREA_ABOVE_7", weight: 1 },
+                    { code: "RR_GE_30", weight: 1 },
+                    { code: "SBP_BELOW_90", weight: 1 },
+                    { code: "AGE_GE_65", weight: 1 }
+                ],
+                interpretation: [
+                    { score_max: 1, care_setting: "outpatient", triage: "consult_gp" },
+                    { score_min: 2, score_max: 2, care_setting: "inpatient", triage: "urgent" },
+                    { score_min: 3, care_setting: "ICU", triage: "emergency" }
+                ]
+            },
+            treatment_protocols: {
+                outpatient_mild: { first_line: ["Amoxicillin", "Amoxicillin-Clavulanate"], alternative: ["Doxycycline"], duration_days: 5 },
+                inpatient_moderate: { first_line: ["Ceftriaxone"], add_on: ["Azithromycin"] }
+            },
+            advice: "พักผ่อน ดื่มน้ำ หากหอบเหนื่อยหรือซึมลงให้รีบพบแพทย์ทันที"
+        },
+        {
+            id: "ACS",
+            name_th: "กลุ่มอาการหลอดเลือดหัวใจเฉียบพลัน",
+            name_en: "Acute Coronary Syndrome (STEMI/NSTEMI)",
+            category: "Cardiovascular",
+            sources: ["ESC 2023", "ACC/AHA 2025"],
+            keywords: ["chestpain", "dyspnea", "dizziness"],
+            diagnostic_criteria: {
+                required_symptoms: ["CHEST_PAIN_PRESSURE"],
+                optional_symptoms: ["RADIATION_LEFT_ARM_JAW", "DIAPHORESIS", "NAUSEA"],
+                investigations: ["ECG_ST_ELEVATION", "TROPONIN_ABOVE_99TH"]
+            },
+            red_flags: ["CHEST_PAIN_GE_20_MIN", "HEMODYNAMIC_INSTABILITY", "NEW_ST_ELEVATION"],
+            triage_profile: {
+                emergency: { triggers: ["CHEST_PAIN_PRESSURE_GE_20_MIN"], action: "🚨 โทร 1669 / ส่ง EMS ทันที + EKG ภายใน 10 นาที" }
+            },
+            treatment_protocols: {
+                initial: ["Aspirin", "P2Y12 inhibitor", "Anticoagulant"],
+                definitive: ["Primary PCI or Fibrinolysis"]
+            },
+            advice: "ภาวะฉุกเฉิน ห้ามออกแรงเด็ดขาด ต้องส่งโรงพยาบาลทันที"
+        },
+        {
+            id: "SYNCOPE",
+            name_th: "ภาวะหมดสติ / เป็นลม",
+            name_en: "Syncope",
+            category: "Neurological/Cardiovascular",
+            sources: ["ACC/AHA/HRS 2017"],
+            keywords: ["dizziness", "chestpain", "dyspnea"],
+            diagnostic_criteria: {
+                required_symptoms: ["TRANSIENT_LOSS_OF_CONSCIOUSNESS"],
+                optional_symptoms: ["PRODROME_DIZZINESS", "PALPITATIONS_BEFORE"]
+            },
+            red_flags: ["EXERTIONAL_SYNCOPE", "NO_PRODROME", "ABNORMAL_ECG", "STRUCTURAL_HEART_DISEASE"],
+            risk_factors: ["AGE_OVER_60", "FAMILY_HISTORY_SUDDEN_DEATH"],
+            triage_profile: {
+                urgent: { triggers: ["EXERTIONAL_SYNCOPE", "ABNORMAL_ECG"], action: "ส่ง ER เพื่อประเมินความเสี่ยงหัวใจ" },
+                consult_gp: { triggers: ["VASOVAGAL_CLASSIC"], action: "นัดพบแพทย์ทั่วไป ติดตามอาการ" }
+            },
+            advice: "หากหมดสติขณะออกแรง หรือไม่มีอาการเตือนมาก่อน ให้ไปโรงพยาบาลทันที"
+        },
+        {
+            id: "ACUTE_ABDOMEN",
+            name_th: "ปวดท้องเฉียบพลัน (Acute Abdomen)",
+            name_en: "Acute Abdominal Pain",
+            category: "Gastrointestinal",
+            sources: ["Merck Manual"],
+            keywords: ["abdpain", "gi"],
+            diagnostic_criteria: {
+                required_symptoms: ["SEVERE_ABD_PAIN"],
+                optional_symptoms: ["NAUSEA_VOMITING", "MELANA", "JAUNDICE"]
+            },
+            red_flags: ["SIGNS_OF_SHOCK", "PERITONITIS_SIGNS", "PAIN_OUT_OF_PROPORTION"],
+            triage_profile: {
+                emergency: { triggers: ["SIGNS_OF_SHOCK", "PERITONITIS_SIGNS"], action: "ส่ง ER ทันที อาจต้องผ่าตัดฉุกเฉิน" }
+            },
+            advice: "งดอาหารและน้ำชั่วคราว หากปวดรุนแรงมากหรือหน้าท้องแข็งตึง ให้ไป ER ทันที"
+        },
+        {
+            id: "HYPERTENSION",
+            name_th: "ความดันโลหิตสูง",
+            name_en: "Hypertension",
+            category: "Cardiovascular/Chronic",
+            sources: ["ESC 2024", "ESH 2023"],
+            keywords: ["headache", "dizziness", "chestpain"],
+            diagnostic_criteria: {
+                investigations: ["OFFICE_BP_GE_140_90", "HBPM_CONFIRMATION"]
+            },
+            targets: { general: "<130/80 mmHg", tolerated: "120-129/70-79 mmHg" },
+            treatment_threshold: "เริ่มยาเมื่อ Office BP > 160/100 หรือ > 140/90 ร่วมกับ HMOD/CV Risk สูง",
+            advice: "ลดเค็ม ออกกำลังกายสม่ำเสมอ วัดความดันที่บ้านบันทึกไว้พบแพทย์"
+        },
+        {
+            id: "CKD",
+            name_th: "โรคไตเรื้อรัง",
+            name_en: "Chronic Kidney Disease (CKD)",
+            category: "Renal/Chronic",
+            sources: ["KDIGO 2024"],
+            keywords: ["urinary", "dyspnea", "dizziness"],
+            diagnostic_criteria: {
+                investigations: ["EGFR_LT_60", "ACR_ELEVATED", "CHRONICITY_GT_3_MONTHS"]
+            },
+            categories: ["G1-G5 (eGFR)", "A1-A3 (Albuminuria)"],
+            advice: "ควบคุมความดันและน้ำตาล หลีกเลี่ยงยาแก้ปวด NSAIDs ตรวจ eGFR และ ACR ทุกปี"
+        },
+        {
+            id: "DIABETES",
+            name_th: "เบาหวาน",
+            name_en: "Diabetes Mellitus",
+            category: "Metabolic/Chronic",
+            sources: ["ADA 2024"],
+            keywords: ["urinary", "dizziness", "rash"],
+            diagnostic_criteria: {
+                investigations: ["FPG_GE_126", "HBA1C_GE_6.5", "OGTT_GE_200", "AUTOANTIBODIES_T1DM"]
+            },
+            advice: "ควบคุมอาหาร ลดหวาน ออกกำลังกาย ตรวจตาและไตเป็นประจำ"
+        }
+    ];
+
+    // 3. ฟังก์ชัน Import ข้อมูล
+    async function importData() {
+        const btn = document.getElementById('importBtn');
+        const status = document.getElementById('status');
+        
+        btn.disabled = true;
+        btn.innerText = "⏳ กำลังนำเข้าข้อมูล...";
+        status.innerText = "";
+        status.className = "";
+
+        try {
+            const batch = db.batch();
+            
+            clinicalKB.forEach(disease => {
+                // อ้างอิงไปที่ Collection 'conditions' และใช้ ID ของโรคเป็น Document ID
+                const docRef = db.collection("conditions").doc(disease.id);
+                batch.set(docRef, disease);
+            });
+
+            await batch.commit();
+            
+            status.innerText = `✅ สำเร็จ! นำเข้าข้อมูล ${clinicalKB.length} โรคเข้าสู่ Firebase เรียบร้อยแล้ว`;
+            btn.innerText = "🎉 Import เสร็จสิ้น";
+            
+            // แจ้งเตือนให้กลับไปหน้าหลัก
+            setTimeout(() => {
+                alert("นำเข้าข้อมูลสำเร็จ! ตอนนี้คุณสามารถปิดหน้านี้ และกลับไปทดสอบระบบซักประวัติใน mornoi.html ได้เลยครับ");
+            }, 500);
+
+        } catch (error) {
+            console.error(error);
+            status.innerText = "❌ เกิดข้อผิดพลาด: " + error.message + " (กรุณาตรวจสอบ Rules ใน Firebase ว่าอนุญาตให้อ่าน/เขียนหรือไม่)";
+            status.className = "error";
+            btn.disabled = false;
+            btn.innerText = "🚀 ลอง Import อีกครั้ง";
+        }
+    }
+</script>
+
+</body>
+</html>
