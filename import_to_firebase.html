@@ -3,34 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Import Clinical KB to Firebase</title>
+    <title>Mor Noi - Comprehensive Clinical KB & Import System</title>
     <style>
-        body { font-family: 'Sarabun', sans-serif; background: #f0f9ff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); text-align: center; max-width: 500px; }
-        h2 { color: #1e40af; margin-bottom: 10px; }
-        p { color: #64748b; margin-bottom: 30px; }
-        button { background: linear-gradient(135deg, #2563eb, #1e40af); color: white; border: none; padding: 15px 30px; font-size: 1.1rem; font-weight: bold; border-radius: 10px; cursor: pointer; transition: 0.3s; width: 100%; }
-        button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4); }
+        * { box-sizing: border-box; font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif; }
+        body { background: #f0f9ff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .card { background: white; padding: 35px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; max-width: 600px; width: 100%; }
+        h2 { color: #1e40af; margin-top: 0; margin-bottom: 8px; font-size: 1.8rem; }
+        p.subtitle { color: #64748b; margin-bottom: 25px; font-size: 0.95rem; line-height: 1.5; }
+        .stats-container { display: flex; justify-content: space-around; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; margin-bottom: 25px; }
+        .stat-item { text-align: center; }
+        .stat-value { font-size: 1.5rem; font-weight: bold; color: #2563eb; }
+        .stat-label { font-size: 0.8rem; color: #64748b; }
+        button { background: linear-gradient(135deg, #2563eb, #1e40af); color: white; border: none; padding: 16px 24px; font-size: 1.05rem; font-weight: bold; border-radius: 12px; cursor: pointer; transition: all 0.2s ease; width: 100%; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
+        button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35); }
         button:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; box-shadow: none; }
-        #status { margin-top: 20px; font-weight: bold; color: #10b981; min-height: 24px; }
-        .error { color: #ef4444 !important; }
+        #status { margin-top: 20px; font-weight: 600; min-height: 24px; font-size: 0.95rem; }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .info-box { margin-top: 25px; text-align: left; background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 15px; border-radius: 0 8px 8px 0; font-size: 0.85rem; color: #1e3a8a; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <h2>🩺 Mor Noi Data Importer</h2>
-    <p>นำเข้าฐานข้อมูลโรคเชิงลึก (Clinical Knowledge Base) จาก PDF สู่ Firebase Firestore</p>
-    <button id="importBtn" onclick="importData()">🚀 Import ข้อมูลโรคลง Firebase</button>
+    <p class="subtitle">ระบบจัดการและนำเข้าฐานข้อมูลโรคเชิงลึก (Clinical Knowledge Base)<br>รองรับกรอบประเมินอาการ Triage และแนวทางเวชปฏิบัติอายุรศาสตร์</p>
+    
+    <div class="stats-container">
+        <div class="stat-item">
+            <div class="stat-value" id="diseaseCount">13</div>
+            <div class="stat-label">จำนวนโรคใน KB</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">6</div>
+            <div class="stat-label">หมวดหมู่อายุรศาสตร์</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">3</div>
+            <div class="stat-label">ระดับ Triage</div>
+        </div>
+    </div>
+
+    <button id="importBtn" onclick="importData()">🚀 Import ข้อมูลลง Firebase Firestore</button>
     <div id="status"></div>
+
+    <div class="info-box">
+        <b>💡 คำแนะนำจากคุณหมอ:</b> ฐานข้อมูลชุดนี้ครอบคลุมเกณฑ์การคัดกรองภาวะฉุกเฉิน (Red Flags), คะแนนประเมินความรุนแรง (เช่น CURB-65), และโปรโตคอลการดูแลเบื้องต้น เพื่อความปลอดภัยสูงสุดของผู้ป่วยค่ะ
+    </div>
 </div>
 
-<!-- Firebase SDK -->
+<!-- Firebase Compat SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
-    // 1. Firebase Config ของคุณ
+    // 1. การตั้งค่า Firebase Configuration
     const firebaseConfig = {
         apiKey: "AIzaSyBoElKLMwgrtUiy52aoXwKwlVrs7hlvIUA",
         authDomain: "doctor-app-34889.firebaseapp.com",
@@ -44,7 +71,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // 2. ฐานข้อมูลโรคที่สกัดจาก PDF ของคุณ (Clinical Knowledge Base)
+    // 2. ฐานข้อมูลโรคเชิงลึก (Comprehensive Clinical Knowledge Base)
     const clinicalKB = [
         {
             id: "CAP",
@@ -52,11 +79,11 @@
             name_en: "Community-Acquired Pneumonia",
             category: "Respiratory",
             sources: ["NICE NG250", "ATS/IDSA 2019"],
-            keywords: ["fever", "uri", "dyspnea", "chestpain"], // Map กับ ID ใน symptomsDB
+            keywords: ["fever", "cough", "dyspnea", "chestpain", "sputum"],
             diagnostic_criteria: {
                 required_symptoms: ["COUGH", "FEVER"],
-                optional_symptoms: ["DYSPNEA", "CHEST_PAIN", "SPUTUM"],
-                clinical_signs: ["AUSCULTATION_CRACKLES", "TACHYPNEA_GE_24"]
+                optional_symptoms: ["DYSPNEA", "CHEST_PAIN_PLEURITIC", "PURULENT_SPUTUM"],
+                clinical_signs: ["AUSCULTATION_CRACKLES", "TACHYPNEA_GE_24", "SPO2_LT_95"]
             },
             red_flags: ["SPO2_BELOW_90", "CONFUSION", "SBP_BELOW_90", "RR_GE_30"],
             severity_scoring: {
@@ -78,7 +105,7 @@
                 outpatient_mild: { first_line: ["Amoxicillin", "Amoxicillin-Clavulanate"], alternative: ["Doxycycline"], duration_days: 5 },
                 inpatient_moderate: { first_line: ["Ceftriaxone"], add_on: ["Azithromycin"] }
             },
-            advice: "พักผ่อน ดื่มน้ำ หากหอบเหนื่อยหรือซึมลงให้รีบพบแพทย์ทันที"
+            advice: "พักผ่อนให้เพียงพอ ดื่มน้ำสะอาดอย่างน้อยวันละ 2-3 ลิตร หากมีอาการหอบเหนื่อย ซึมลง หรือสับสน ให้รีบพบแพทย์ทันที"
         },
         {
             id: "ACS",
@@ -86,13 +113,13 @@
             name_en: "Acute Coronary Syndrome (STEMI/NSTEMI)",
             category: "Cardiovascular",
             sources: ["ESC 2023", "ACC/AHA 2025"],
-            keywords: ["chestpain", "dyspnea", "dizziness"],
+            keywords: ["chestpain", "dyspnea", "dizziness", "sweating", "nausea"],
             diagnostic_criteria: {
                 required_symptoms: ["CHEST_PAIN_PRESSURE"],
                 optional_symptoms: ["RADIATION_LEFT_ARM_JAW", "DIAPHORESIS", "NAUSEA"],
                 investigations: ["ECG_ST_ELEVATION", "TROPONIN_ABOVE_99TH"]
             },
-            red_flags: ["CHEST_PAIN_GE_20_MIN", "HEMODYNAMIC_INSTABILITY", "NEW_ST_ELEVATION"],
+            red_flags: ["CHEST_PAIN_GE_20_MIN", "HEMODYNAMIC_INSTABILITY", "NEW_ST_ELEVATION", "SYNCOPE"],
             triage_profile: {
                 emergency: { triggers: ["CHEST_PAIN_PRESSURE_GE_20_MIN"], action: "🚨 โทร 1669 / ส่ง EMS ทันที + EKG ภายใน 10 นาที" }
             },
@@ -100,15 +127,15 @@
                 initial: ["Aspirin", "P2Y12 inhibitor", "Anticoagulant"],
                 definitive: ["Primary PCI or Fibrinolysis"]
             },
-            advice: "ภาวะฉุกเฉิน ห้ามออกแรงเด็ดขาด ต้องส่งโรงพยาบาลทันที"
+            advice: "ภาวะฉุกเฉินระดับสูง ห้ามออกแรงเด็ดขาด นอน นิ่งๆ และต้องส่งโรงพยาบาลฉุกเฉินทันที"
         },
         {
             id: "SYNCOPE",
             name_th: "ภาวะหมดสติ / เป็นลม",
             name_en: "Syncope",
-            category: "Neurological/Cardiovascular",
+            category: "Cardiovascular/Neurological",
             sources: ["ACC/AHA/HRS 2017"],
-            keywords: ["dizziness", "chestpain", "dyspnea"],
+            keywords: ["dizziness", "fainting", "loss_of_consciousness", "palpitations"],
             diagnostic_criteria: {
                 required_symptoms: ["TRANSIENT_LOSS_OF_CONSCIOUSNESS"],
                 optional_symptoms: ["PRODROME_DIZZINESS", "PALPITATIONS_BEFORE"]
@@ -117,26 +144,26 @@
             risk_factors: ["AGE_OVER_60", "FAMILY_HISTORY_SUDDEN_DEATH"],
             triage_profile: {
                 urgent: { triggers: ["EXERTIONAL_SYNCOPE", "ABNORMAL_ECG"], action: "ส่ง ER เพื่อประเมินความเสี่ยงหัวใจ" },
-                consult_gp: { triggers: ["VASOVAGAL_CLASSIC"], action: "นัดพบแพทย์ทั่วไป ติดตามอาการ" }
+                consult_gp: { triggers: ["VASOVAGAL_CLASSIC"], action: "นัดพบแพทย์ทั่วไป เพื่อประเมินและติดตามอาการ" }
             },
-            advice: "หากหมดสติขณะออกแรง หรือไม่มีอาการเตือนมาก่อน ให้ไปโรงพยาบาลทันที"
+            advice: "หากหมดสติขณะออกแรง หรือไม่มีอาการเตือนก่อนวูบ ให้ไปพบแพทย์ ณ ห้องฉุกเฉินทันที"
         },
         {
             id: "ACUTE_ABDOMEN",
-            name_th: "ปวดท้องเฉียบพลัน (Acute Abdomen)",
+            name_th: "ปวดท้องเฉียบพลัน",
             name_en: "Acute Abdominal Pain",
             category: "Gastrointestinal",
             sources: ["Merck Manual"],
-            keywords: ["abdpain", "gi"],
+            keywords: ["abdpain", "vomiting", "fever", "diarrhea"],
             diagnostic_criteria: {
                 required_symptoms: ["SEVERE_ABD_PAIN"],
-                optional_symptoms: ["NAUSEA_VOMITING", "MELANA", "JAUNDICE"]
+                optional_symptoms: ["NAUSEA_VOMITING", "MELENA", "JAUNDICE"]
             },
-            red_flags: ["SIGNS_OF_SHOCK", "PERITONITIS_SIGNS", "PAIN_OUT_OF_PROPORTION"],
+            red_flags: ["SIGNS_OF_SHOCK", "PERITONITIS_SIGNS", "PAIN_OUT_OF_PROPORTION", "RIGID_ABDOMEN"],
             triage_profile: {
-                emergency: { triggers: ["SIGNS_OF_SHOCK", "PERITONITIS_SIGNS"], action: "ส่ง ER ทันที อาจต้องผ่าตัดฉุกเฉิน" }
+                emergency: { triggers: ["SIGNS_OF_SHOCK", "PERITONITIS_SIGNS"], action: "ส่ง ER ทันที อาจเป็นภาวะช่องท้องอักเสบรุนแรง" }
             },
-            advice: "งดอาหารและน้ำชั่วคราว หากปวดรุนแรงมากหรือหน้าท้องแข็งตึง ให้ไป ER ทันที"
+            advice: "งดอาหารและน้ำทุกชนิดชั่วคราว ห้ามทานยาแก้ปวดรุนแรงก่อนพบแพทย์ และให้รีบไปโรงพยาบาล"
         },
         {
             id: "HYPERTENSION",
@@ -144,13 +171,13 @@
             name_en: "Hypertension",
             category: "Cardiovascular/Chronic",
             sources: ["ESC 2024", "ESH 2023"],
-            keywords: ["headache", "dizziness", "chestpain"],
+            keywords: ["headache", "dizziness", "blurred_vision"],
             diagnostic_criteria: {
                 investigations: ["OFFICE_BP_GE_140_90", "HBPM_CONFIRMATION"]
             },
             targets: { general: "<130/80 mmHg", tolerated: "120-129/70-79 mmHg" },
-            treatment_threshold: "เริ่มยาเมื่อ Office BP > 160/100 หรือ > 140/90 ร่วมกับ HMOD/CV Risk สูง",
-            advice: "ลดเค็ม ออกกำลังกายสม่ำเสมอ วัดความดันที่บ้านบันทึกไว้พบแพทย์"
+            treatment_threshold: "เริ่มยาเมื่อ Office BP > 160/100 หรือ > 140/90 ร่วมกับมีความเสี่ยงสูง",
+            advice: "ลดอาหารรสจัด/เค็ม ออกกำลังกายแอโรบิกสม่ำเสมอ บันทึกค่าความดันโลหิตที่บ้านเพื่อนำมาประเมิน"
         },
         {
             id: "CKD",
@@ -158,12 +185,12 @@
             name_en: "Chronic Kidney Disease (CKD)",
             category: "Renal/Chronic",
             sources: ["KDIGO 2024"],
-            keywords: ["urinary", "dyspnea", "dizziness"],
+            keywords: ["edema", "fatigue", "foamy_urine", "anorexia"],
             diagnostic_criteria: {
                 investigations: ["EGFR_LT_60", "ACR_ELEVATED", "CHRONICITY_GT_3_MONTHS"]
             },
             categories: ["G1-G5 (eGFR)", "A1-A3 (Albuminuria)"],
-            advice: "ควบคุมความดันและน้ำตาล หลีกเลี่ยงยาแก้ปวด NSAIDs ตรวจ eGFR และ ACR ทุกปี"
+            advice: "ควบคุมระดับความดันโลหิตและน้ำตาล หลีกเลี่ยงยาแก้ปวดกลุ่ม NSAIDs และยาต้ม/ยาลูกกลอน"
         },
         {
             id: "DIABETES",
@@ -171,166 +198,111 @@
             name_en: "Diabetes Mellitus",
             category: "Metabolic/Chronic",
             sources: ["ADA 2024"],
-            keywords: ["urinary", "dizziness", "rash"],
+            keywords: ["polydipsia", "polyuria", "weight_loss", "fatigue"],
             diagnostic_criteria: {
-                investigations: ["FPG_GE_126", "HBA1C_GE_6.5", "OGTT_GE_200", "AUTOANTIBODIES_T1DM"]
+                investigations: ["FPG_GE_126", "HBA1C_GE_6.5", "OGTT_GE_200"]
             },
-            advice: "ควบคุมอาหาร ลดหวาน ออกกำลังกาย ตรวจตาและไตเป็นประจำ"
+            advice: "ควบคุมปริมาณคาร์โบไฮเดรตและของหวาน ตรวจระดับน้ำตาล ปลูกฝังนิสัยออกกำลังกาย"
         },
         {
             id: "PE",
             name_th: "ลิ่มเลือดอุดตันในปอด",
             name_en: "Pulmonary Embolism (PE)",
             category: "Cardiovascular/Respiratory",
-            sources: ["Merck Manual", "ESC Guidelines"],
-            keywords: ["dyspnea", "chestpain", "dizziness"],
+            sources: ["ESC Guidelines 2024", "Merck Manual"],
+            keywords: ["dyspnea", "chestpain", "hemoptysis", "leg_swelling"],
             diagnostic_criteria: {
                 required_symptoms: ["ACUTE_DYSPNEA", "PLEURITIC_CHEST_PAIN"],
-                risk_factors: ["RECENT_SURGERY", "PROLONGED_TRAVEL", "DVT_HISTORY", "ACTIVE_CANCER"],
-                investigations: ["CT_ANGIOGRAPHY", "D_DIMER_ELEVATED", "VQ_SCAN"]
+                risk_factors: ["RECENT_SURGERY", "PROLONGED_IMMOBILITY", "DVT_HISTORY"]
             },
             red_flags: ["HEMODYNAMIC_INSTABILITY", "SYNCOPE", "SEVERE_HYPOXIA"],
             triage_profile: {
-                emergency: { triggers: ["HEMODYNAMIC_INSTABILITY"], action: "🚨 ส่ง ER ทันที พิจารณา Thrombolysis หรือ Embolectomy" },
-                urgent: { triggers: ["SUBMASSIVE_PE"], action: "รับเข้าโรงพยาบาล ให้ Anticoagulation" }
+                emergency: { triggers: ["HEMODYNAMIC_INSTABILITY"], action: "🚨 ส่ง ER ทันที ให้ Oxygen และพิจารณา Anticoagulation" }
             },
-            treatment_protocols: {
-                initial: ["LMWH", "DOACs", "Unfractionated Heparin"],
-                massive: ["Thrombolytics", "Catheter-directed therapy"]
-            },
-            advice: "ภาวะอันตรายถึงชีวิต หากมีอาการหอบเหนื่อยเฉียบพลัน เจ็บหน้าอกเวลาหายใจเข้า หรือเป็นลม โดยเฉพาะหลังผ่าตัดหรือนั่งรถ/เครื่องบินนานๆ ต้องไป ER ทันที"
+            advice: "ภาวะอันตรายถึงชีวิต หากมีอาการหอบเหนื่อยเฉียบพลันหรือแน่นหน้าอกหลังเดินทางไกล/ผ่าตัด ต้องไป ER ทันที"
         },
         {
             id: "COPD_ASTHMA",
             name_th: "โรคปอดอุดกั้นเรื้อรังกำเริบ / หอบหืด",
             name_en: "COPD Exacerbation / Asthma",
             category: "Respiratory",
-            sources: ["GOLD Guidelines", "Merck Manual"],
-            keywords: ["dyspnea", "uri", "chestpain"],
+            sources: ["GOLD 2024", "GINA 2024"],
+            keywords: ["wheezing", "dyspnea", "cough"],
             diagnostic_criteria: {
-                required_symptoms: ["WORSENING_DYSPNEA", "INCREASED_SPUTUM"],
-                risk_factors: ["SMOKING_HISTORY", "PRIOR_COPD_ASTHMA"],
-                clinical_signs: ["WHEEZING", "PROLONGED_EXPIRATION"]
+                required_symptoms: ["WORSENING_DYSPNEA", "WHEEZING"],
+                clinical_signs: ["PROLONGED_EXPIRATION", "USE_OF_ACCESSORY_MUSCLES"]
             },
-            red_flags: ["INABILITY_TO_SPEAK_FULL_SENTENCES", "SPO2_BELOW_90", "CONFUSION", "USE_OF_ACCESSORY_MUSCLES"],
-            triage_profile: {
-                emergency: { triggers: ["INABILITY_TO_SPEAK_FULL_SENTENCES", "SPO2_BELOW_90"], action: "🚨 ส่ง ER ทันที อาจต้องใช้เครื่องช่วยหายใจ" },
-                urgent: { triggers: ["MODERATE_EXACERBATION"], action: "พบแพทย์เพื่อปรับยาพ่นและพิจารณาให้สเตียรอยด์/ยาปฏิชีวนะ" }
-            },
-            treatment_protocols: {
-                initial: ["SABA (Salbutamol)", "SAMA (Ipratropium)", "Systemic Corticosteroids"],
-                infectious_trigger: ["Antibiotics if purulent sputum"]
-            },
-            advice: "ใช้ยาพ่นขยายหลอดลมตามแพทย์สั่ง หากหอบจนพูดไม่เป็นประโยคหรือปากเขียว ให้ไป ER ทันที"
+            red_flags: ["INABILITY_TO_SPEAK_FULL_SENTENCES", "SPO2_BELOW_90", "CONFUSION"],
+            advice: "ใช้ยาพ่นขยายหลอดลมตามฉุกเฉิน หากหายใจหอบจนพูดไม่เป็นประโยคหรือริมฝีปากเขียวคล้ำ ให้ไป ER ทันที"
         },
         {
             id: "HEART_FAILURE",
             name_th: "ภาวะหัวใจล้มเหลว",
             name_en: "Heart Failure (Acute Decompensated)",
             category: "Cardiovascular",
-            sources: ["ESC Heart Failure Guidelines", "Merck Manual"],
-            keywords: ["dyspnea", "chestpain", "dizziness"],
+            sources: ["ESC Heart Failure Guidelines"],
+            keywords: ["orthopnea", "pnd", "edema", "fatigue"],
             diagnostic_criteria: {
-                required_symptoms: ["DYSPNEA", "ORTGOPNEA", "PND"],
-                optional_symptoms: ["PERIPHERAL_EDEMA", "FATIGUE"],
-                investigations: ["BNP_NT_PROBNP_ELEVATED", "CXR_PULMONARY_EDOMA", "ECHO_REDUCED_EF"]
+                required_symptoms: ["DYSPNEA_ON_EXERTION", "ORTHOPNEA"],
+                clinical_signs: ["PERIPHERAL_EDEMA", "JVD_ELEVATED"]
             },
-            red_flags: ["ACUTE_PULMONARY_EDOMA", "CARDIOGENIC_SHOCK", "SPO2_BELOW_90"],
-            triage_profile: {
-                emergency: { triggers: ["ACUTE_PULMONARY_EDOMA", "CARDIOGENIC_SHOCK"], action: "🚨 ส่ง ER ทันที ให้ Oxygen, IV Diuretics, Vasodilators" },
-                urgent: { triggers: ["NEW_ONSET_HF", "WORSENING_CHRONIC_HF"], action: "รับเข้าโรงพยาบาลเพื่อปรับยาขับปัสสาวะ" }
-            },
-            treatment_protocols: {
-                acute: ["IV Loop Diuretics (Furosemide)", "Oxygen/NIV", "Vasodilators (Nitrates)"],
-                chronic_guideline_directed: ["ACEi/ARB/ARNI", "Beta-blockers", "MRA", "SGLT2i"]
-            },
-            advice: "หากมีอาการหอบเหนื่อยตอนนอนราบ ต้องนั่งหลับ หรือนอนราบไม่ได้ ร่วมกับขาบวม ให้รีบพบแพทย์เพื่อปรับยาขับปัสสาวะ"
+            red_flags: ["ACUTE_PULMONARY_EDEMA", "CARDIOGENIC_SHOCK"],
+            advice: "หากมีอาการเหนื่อยแน่นเวลานอนราบจนต้องหนุนหมอนสูงหลายใบ หรือขาบวมกดบุ๋มสองข้าง ให้ไปพบแพทย์"
         },
         {
             id: "UTI_PYELONEPHRITIS",
-            name_th: "ติดเชื้อทางเดินปัสสาวะ / กรวยไตอักเสบ",
-            name_en: "Urinary Tract Infection / Pyelonephritis",
+            name_th: "การติดเชื้อทางเดินปัสสาวะ / กรวยไตอักเสบ",
+            name_en: "UTI / Acute Pyelonephritis",
             category: "Renal/Infectious",
-            sources: ["Merck Manual", "IDSA Guidelines"],
-            keywords: ["urinary", "fever", "abdpain"],
+            sources: ["IDSA Guidelines"],
+            keywords: ["dysuria", "frequency", "fever", "flank_pain"],
             diagnostic_criteria: {
-                required_symptoms: ["DYSURIA", "FREQUENCY", "URGENCY"],
-                optional_symptoms: ["FLANK_PAIN", "FEVER", "CHILLS"],
-                investigations: ["URINALYSIS_PYURIA", "URINE_CULTURE_POSITIVE"]
+                required_symptoms: ["DYSURIA", "URGENCY"],
+                optional_symptoms: ["HIGH_FEVER", "FLANK_PAIN"]
             },
-            red_flags: ["SEPSIS_SIGNS", "INABILITY_TO_TOLERATE_ORAL", "PREGNANCY", "OBSTRUCTION_SIGNS"],
-            severity_scoring: {
-                system: "Clinical Classification",
-                interpretation: [
-                    { score_max: 0, care_setting: "outpatient", triage: "consult_gp", note: "Lower UTI (Cystitis)" },
-                    { score_min: 1, care_setting: "inpatient_or_close_followup", triage: "urgent", note: "Pyelonephritis (Fever + Flank pain)" }
-                ]
-            },
-            triage_profile: {
-                urgent: { triggers: ["HIGH_FEVER_WITH_FLANK_PAIN", "SEPSIS_SIGNS"], action: "ส่ง ER หรือพบแพทย์ด่วน เพื่อพิจารณาให้ยาปฏิชีวนะทางหลอดเลือดดำ" },
-                consult_gp: { triggers: ["UNCOMPLICATED_CYSTITIS"], action: "พบแพทย์ทั่วไป รับยาปฏิชีวนะชนิดรับประทาน" }
-            },
-            treatment_protocols: {
-                uncomplicated_cystitis: ["Nitrofurantoin", "Fosfomycin", "Trimethoprim-sulfamethoxazole"],
-                pyelonephritis: ["Fluoroquinolones (Ciprofloxacin/Levofloxacin)", "Ceftriaxone IV"]
-            },
-            advice: "ดื่มน้ำมากๆ ไม่กลั้นปัสสาวะ หากมีไข้สูงหนาวสั่นร่วมกับปวดเอว ให้รีบพบแพทย์เพราะอาจเป็นกรวยไตอักเสบ"
+            red_flags: ["HIGH_FEVER_WITH_CHILLS", "FLANK_PAIN", "SEPSIS_SIGNS"],
+            advice: "ดื่มน้ำสะอาดมากพอ ไม่กักปัสสาวะ หากมีไข้สูงหนาวสั่นและปวดบริเวณเอวร่วมด้วย ให้พบแพทย์เพื่อรับยาปฏิชีวนะ"
         },
         {
             id: "HEADACHE_PRIMARY",
             name_th: "ปวดศีรษะไมเกรน / ปวดศีรษะจากความเครียด",
-            name_en: "Migraine / Tension-Type Headache",
+            name_en: "Migraine / Tension Headache",
             category: "Neurological",
-            sources: ["Merck Manual", "International Classification of Headache Disorders"],
-            keywords: ["headache", "dizziness", "gi"],
+            sources: ["ICHD-3"],
+            keywords: ["headache", "nausea", "photophobia"],
             diagnostic_criteria: {
-                migraine_features: ["UNILATERAL", "PULSATING", "MODERATE_TO_SEVERE", "AGGRAVATED_BY_ROUTINE_ACTIVITY", "NAUSEA_PHOTOPHOBIA_PHONOPHOBIA"],
-                tension_features: ["BILATERAL", "PRESSING_TIGHTENING", "MILD_TO_MODERATE", "NOT_AGGRAVATED_BY_ROUTINE_ACTIVITY"]
+                migraine_features: ["UNILATERAL", "PULSATING", "NAUSEA_OR_VOMITING"],
+                tension_features: ["BILATERAL", "PRESSING_LIKE_BAND"]
             },
-            red_flags: ["THUNDERCLAP_HEADACHE", "NEUROLOGICAL_DEFICIT", "FEVER_WITH_NECK_STIFFNESS", "NEW_ONSET_AGE_OVER_50", "POST_TRAUMA_HEADACHE"],
-            triage_profile: {
-                emergency: { triggers: ["THUNDERCLAP_HEADACHE", "NEUROLOGICAL_DEFICIT", "FEVER_WITH_NECK_STIFFNESS"], action: "🚨 ส่ง ER ทันที เพื่อแยกโรคเลือดออกในสมองหรือเยื่อหุ้มสมองอักเสบ" },
-                consult_gp: { triggers: ["CLASSIC_MIGRAINE_OR_TENSION"], action: "นัดพบแพทย์เพื่อรับยาบรรเทาอาการและยาป้องกัน" }
-            },
-            treatment_protocols: {
-                acute_mild: ["NSAIDs", "Acetaminophen"],
-                acute_moderate_severe: ["Triptans", "Ergotamines"],
-                antiemetic: ["Metoclopramide", "Prochlorperazine"]
-            },
-            advice: "พักผ่อนในห้องมืดและเงียบสงบ หลีกเลี่ยงสิ่งกระตุ้น หากปวดศีรษะรุนแรงที่สุดในชีวิต (Thunderclap) หรือมีแขนขาอ่อนแรงร่วมด้วย ให้ไป ER ทันที"
+            red_flags: ["THUNDERCLAP_HEADACHE", "NEUROLOGICAL_DEFICIT", "NECK_STIFFNESS"],
+            advice: "พักผ่อนในห้องเงียบและมืด หลีกเลี่ยงปัจจัยกระตุ้น หากปวดรุนแรงเฉียบพลันที่สุดในชีวิต ให้รีบไป ER"
         },
         {
             id: "GI_COMMON",
             name_th: "กรดไหลย้อน / กระเพาะอาหารอักเสบ / อาหารเป็นพิษ",
             name_en: "GERD / Gastritis / Food Poisoning",
             category: "Gastrointestinal",
-            sources: ["Merck Manual", "ACG Guidelines"],
-            keywords: ["abdpain", "gi", "chestpain"],
+            sources: ["ACG Guidelines"],
+            keywords: ["heartburn", "epigastric_pain", "diarrhea", "nausea"],
             diagnostic_criteria: {
-                gerd_features: ["HEARTBURN", "REGURGITATION", "WORSE_AFTER_MEALS_OR_SUPINE"],
-                gastritis_features: ["EPIGASTRIC_PAIN", "NAUSEA", "NSAID_USE_OR_ALCOHOL"],
-                food_poisoning_features: ["ACUTE_NAUSEA_VOMITING", "DIARRHEA", "RECENT_SUSPICIOUS_FOOD_INTAKE"]
+                gerd_features: ["HEARTBURN", "ACID_REGURGITATION"],
+                gastritis_features: ["EPIGASTRIC_PAIN_RELATED_TO_MEALS"]
             },
-            red_flags: ["HEMATEMESIS", "MELENA", "SEVERE_DEHYDRATION", "INTRACTABLE_VOMITING", "CHEST_PAIN_MIMICKING_ACS"],
-            triage_profile: {
-                emergency: { triggers: ["HEMATEMESIS", "MELENA", "SEVERE_DEHYDRATION"], action: "🚨 ส่ง ER ทันที อาจมีเลือดออกในทางเดินอาหารหรือขาดน้ำรุนแรง" },
-                consult_gp: { triggers: ["UNCOMPLICATED_GERD_GASTRITIS_FOOD_POISONING"], action: "พบแพทย์ทั่วไป รับยาลดกรด ยาแก้อาเจียน และสารละลายเกลือแร่" }
-            },
-            treatment_protocols: {
-                gerd_gastritis: ["PPIs (Omeprazole, Esomeprazole)", "H2 blockers", "Antacids"],
-                food_poisoning: ["Oral Rehydration Salts (ORS)", "Antiemetics", "Avoid NSAIDs"]
-            },
-            advice: "รับประทานอาหารอ่อนย่อยง่าย จิบน้ำเกลือแร่บ่อยๆ หลีกเลี่ยงชา กาแฟ แอลกอฮอล์ และอาหารรสจัด หากอาเจียนเป็นเลือดหรือถ่ายดำ ให้ไป ER ทันที"
+            red_flags: ["HEMATEMESIS", "MELENA", "SEVERE_DEHYDRATION"],
+            advice: "รับประทานอาหารอ่อนย่อยง่าย หลีกเลี่ยงอาหารรสจัด ชา กาแฟ หากถ่ายเป็นเลือดหรืออาเจียนเป็นเลือด ให้ไป ER"
         }
     ];
 
-    // 3. ฟังก์ชัน Import ข้อมูล
+    // Document Count Display
+    document.getElementById('diseaseCount').innerText = clinicalKB.length;
+
+    // 3. ฟังก์ชันนำเข้าข้อมูลไปยัง Firestore
     async function importData() {
         const btn = document.getElementById('importBtn');
         const status = document.getElementById('status');
         
         btn.disabled = true;
-        btn.innerText = "⏳ กำลังนำเข้าข้อมูล...";
+        btn.innerText = "⏳ กำลังนำเข้าฐานข้อมูล clinicalKB...";
         status.innerText = "";
         status.className = "";
 
@@ -338,27 +310,26 @@
             const batch = db.batch();
             
             clinicalKB.forEach(disease => {
-                // อ้างอิงไปที่ Collection 'conditions' และใช้ ID ของโรคเป็น Document ID
                 const docRef = db.collection("conditions").doc(disease.id);
-                batch.set(docRef, disease);
+                batch.set(docRef, disease, { merge: true });
             });
 
             await batch.commit();
             
-            status.innerText = `✅ สำเร็จ! นำเข้าข้อมูล ${clinicalKB.length} โรคเข้าสู่ Firebase เรียบร้อยแล้ว`;
-            btn.innerText = "🎉 Import เสร็จสิ้น";
+            status.innerText = `✅ สำเร็จ! นำเข้าข้อมูลทั้งหมด ${clinicalKB.length} โรคเรียบร้อยแล้ว`;
+            status.className = "success";
+            btn.innerText = "🎉 Import เสร็จสมบูรณ์";
             
-            // แจ้งเตือนให้กลับไปหน้าหลัก
             setTimeout(() => {
-                alert("นำเข้าข้อมูลสำเร็จ! ตอนนี้คุณสามารถปิดหน้านี้ และกลับไปทดสอบระบบซักประวัติใน mornoi.html ได้เลยครับ");
-            }, 500);
+                alert("ยินดีด้วยค่ะคุณชินอิจิ! นำเข้าฐานข้อมูลโรคเข้าสู่ระบบ Firebase เรียบร้อยแล้วค่ะ สามารถนำไปเชื่อมต่อกับ mornoi.html ได้ทันทีค่ะ");
+            }, 400);
 
         } catch (error) {
-            console.error(error);
-            status.innerText = "❌ เกิดข้อผิดพลาด: " + error.message + " (กรุณาตรวจสอบ Rules ใน Firebase ว่าอนุญาตให้อ่าน/เขียนหรือไม่)";
+            console.error("Firestore Import Error:", error);
+            status.innerText = "❌ เกิดข้อผิดพลาด: " + error.message + " (กรุณาตรวจสอบ Firebase Rules)";
             status.className = "error";
             btn.disabled = false;
-            btn.innerText = "🚀 ลอง Import อีกครั้ง";
+            btn.innerText = "🚀 พยายาม Import อีกครั้ง";
         }
     }
 </script>
