@@ -181,7 +181,7 @@
     </div>
     <div class="mode-toggle">
       <button class="mode-btn active" data-mode="patient" onclick="switchMode('patient')">👤 ซักประวัติคนไข้</button>
-      <button class="mode-btn" data-mode="doctor" onclick="switchMode('doctor')">🩺 สรุปข้อมูลให้หมอ</button>
+      <button class="mode-btn" data-mode="doctor" onclick="switchMode('doctor')">🩺 วิเคราะห์ข้อมูลที่ได้รับ</button>
     </div>
   </div>
 </header>
@@ -197,7 +197,7 @@
   <div class="screen active" id="screen-demographics">
     <div class="card">
       <h2 class="screen-title">👤 ข้อมูลพื้นฐาน</h2>
-      <p class="screen-subtitle">เริ่มจากข้อมูลพื้นฐาน ตอบเท่าที่รู้ ไม่ต้องใช้ศัพท์แพทย์</p>
+      <p class="screen-subtitle">เริ่มจากข้อมูลพื้นฐาน ตอบเท่าที่รู้</p>
       <div class="form-group">
         <label>อายุ (ปี)</label>
         <input type="number" id="age" min="0" max="120" placeholder="เช่น 45">
@@ -265,7 +265,7 @@
       </div>
       <div class="form-group">
         <label>เล่าอาการด้วยภาษาของคุณเอง</label>
-        <textarea id="narrative" placeholder="เล่ามาได้เลย ไม่ต้องกังวลเรื่องคำศัพท์แพทย์"></textarea>
+        <textarea id="narrative" placeholder="เล่ามาได้เลย"></textarea>
       </div>
       <div class="btn-group">
         <button class="btn btn-secondary" onclick="prevScreen()">← ย้อนกลับ</button>
@@ -311,7 +311,7 @@
     <div class="card">
       <h2 class="screen-title">🚨 สัญญาณอันตราย</h2>
       <p class="screen-subtitle">ไม่ต้องเลือก "หากไม่ใช่"</p>
-      <div class="alert alert-warning"><span style="font-size:1.3rem;">⚠️</span><div>หากไม่แน่ใจให้เลือก "ไม่แน่ใจ" ระบบจะประเมินให้</div></div>
+      <div class="alert alert-warning"><span style="font-size:1.3rem;">⚠️</span><div>หากไม่แน่ใจ ระบบจะประเมินให้</div></div>
       <div id="redFlagList"></div>
       <div class="form-group" style="margin-top: 20px;">
         <label>เคยเป็นแบบนี้มาก่อนหรือไม่?</label>
