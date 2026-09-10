@@ -143,6 +143,7 @@
 
   .severity-container { padding: 20px 0; }
   .severity-value { text-align: center; font-size: 3rem; font-weight: 800; color: var(--primary); margin: 10px 0; transition: var(--transition); }
+  .severity-scale { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-light); font-weight: 600; margin-top: 8px; }
   
   input[type="range"] { 
     width: 100%; height: 10px; 
@@ -218,7 +219,8 @@
     line-height: 1.7; margin-top: 16px; 
     position: relative;
   }
-  .copy-btn-soap { position: absolute; top: 10px; right: 10px; padding: 5px 10px; font-size: 0.8rem; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); }
+  .copy-btn-soap { position: absolute; top: 10px; right: 10px; padding: 5px 10px; font-size: 0.8rem; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; cursor: pointer; }
+  .copy-btn-soap:hover { background: rgba(255,255,255,0.25); }
 
   .alert { padding: 16px 20px; border-radius: var(--radius-sm); margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
   .alert-warning { background: #fef3c7; border: 1px solid #fbbf24; color: #92400e; }
@@ -315,7 +317,7 @@
       </div>
       <div class="form-group">
         <label>มีโรคประจำตัวอะไรไหม?</label>
-        <textarea id="chronicDiseases" placeholder="เช่น เบาหวาน, ความดัน, หอบหืด (ถ้าไม่มีพิมพ์ว่า ไม่มี)"></textarea>
+        <textarea id="chronicDiseases" placeholder="เช่น เบาหวาน, ความดัน, หอบหืด, โรคหัวใจ (ถ้าไม่มีพิมพ์ว่า ไม่มี)"></textarea>
       </div>
       <div class="form-group">
         <label>มียาที่กินประจำหรือแพ้ยาไหม?</label>
@@ -361,7 +363,7 @@
       </div>
       <div class="form-group">
         <label>เล่าอาการด้วยภาษาของคุณเอง</label>
-        <textarea id="narrative" placeholder="เล่ามาได้เลย เช่น ปวดท้องบิดๆ หลังทานอาหารทะเล..."></textarea>
+        <textarea id="narrative" placeholder="เล่ามาได้เลย เช่น ปวดท้องบิดๆ หลังทานอาหารทะเล, แน่นหน้าอกเวลารีบเดิน..."></textarea>
       </div>
       <div class="btn-group">
         <button class="btn btn-secondary" onclick="prevScreen()">← ย้อนกลับ</button>
@@ -407,7 +409,7 @@
     <div class="card">
       <h2 class="screen-title">🚨 สัญญาณอันตราย</h2>
       <p class="screen-subtitle">ไม่ต้องเลือก "หากไม่ใช่"</p>
-      <div class="alert alert-warning"><span style="font-size:1.3rem;">⚠️</span><div>หากไม่แน่ใจ ระบบจะประเมินให้</div></div>
+      <div class="alert alert-warning"><span style="font-size:1.3rem;">⚠️</span><div>หากไม่แน่ใจ ระบบจะประเมินให้อย่างระมัดระวัง</div></div>
       <div id="redFlagList"></div>
       <div class="form-group" style="margin-top: 20px;">
         <label>เคยเป็นแบบนี้มาก่อนหรือไม่?</label>
@@ -460,7 +462,7 @@
       <p class="screen-subtitle">ใช้เป็น handover ช่วยให้แพทย์เห็นลำดับอาการและสิ่งที่ควรถามต่อ</p>
       
       <div id="firebaseLoading" class="loading-spinner">
-        ⏳ กำลังวิเคราะห์ข้อมูลผ่านฐานข้อมูลทางการแพทย์...<br>กรุณารอสักครู่
+        ⏳ กำลังประมวลผลอัลกอริทึมการคัดกรองทางการแพทย์...<br>กรุณารอสักครู่
       </div>
       
       <div id="summaryContent"></div>
@@ -499,7 +501,7 @@
 
 <script>
 /* ============================================================
-   🩺 หมอน้อย AI Clinical Interview - Firebase Engine
+   🩺 หมอน้อย AI Clinical Interview - Medical Decision Engine
    ============================================================ */
 
 // ============ FIREBASE CONFIGURATION ============
@@ -518,17 +520,56 @@ const db = firebase.firestore();
 
 // ============ STATE MANAGEMENT ============
 let patientRecord = {
-  id: null, // For Firestore ID
+  id: null,
   timestamp: new Date(),
   demographics: { age: null, gender: null, pregnancy: null },
   chronicDiseases: '', medications: '', chiefComplaints: [],
   onset: '', progression: '', narrative: '', dynamicAnswers: {},
   severity: 5, redFlags: [], priorHistory: '',
   vitals: { temp: null, hr: null, spo2: null, bps: null, bpd: null, rr: null, consciousness: 'รู้ตัวดี' },
-  analysis: { possibleConditions: [], urgency: 'normal', soapNote: '' }
+  analysis: { possibleConditions: [], urgency: 'normal', soapNote: '', curb65Score: null }
 };
 
 let clinicalKB = []; 
+
+// ============ FALLBACK MEDICAL KNOWLEDGE BASE ============
+const defaultMedicalKB = [
+  {
+    id: "cap",
+    name_th: "ปอดอักเสบจากชุมชน (Community-Acquired Pneumonia - CAP)",
+    keywords: ["ไอ", "ไข้", "หนาวสั่น", "หอบ", "หายใจลำบาก", "เจ็บหน้าอก", "เสมหะเหลือง", "เสมหะเขียว"],
+    advice: "ควรพบแพทย์เพื่อตรวจปอดและอาจพิจารณายาปฏิชีวนะตามข้อบ่งชี้",
+    severity: "urgent"
+  },
+  {
+    id: "acs",
+    name_th: "กลุ่มอาการหลอดเลือดหัวใจเฉียบพลัน (ACS / Myocardial Infarction)",
+    keywords: ["แน่นหน้าอก", "กดทับ", "ร้าวไปแขน", "ร้าวไปกราม", "เหงื่อออก", "หายใจไม่ออก", "จุกแน่นลิ้นปี่"],
+    advice: "🚨 ภาวะฉุกเฉินทางหัวใจ ต้องไปห้องฉุกเฉินหรือโทร 1669 ทันที",
+    severity: "emergency"
+  },
+  {
+    id: "acute_abdomen",
+    name_th: "ภาวะช่องท้องเฉียบพลัน (Acute Abdomen e.g. Appendicitis/Peritonitis)",
+    keywords: ["ปวดท้องขวาล่าง", "ปวดเกร็ง", "กดเจ็บมาก", "ปวดบิด", "อาเจียน", "ไข้", "ปวดทั่วท้อง"],
+    advice: "ควรได้รับการตรวจหน้าท้องโดยแพทย์ทันที ไม่ควรกิน ยาถ่าย หรือยาระบาย",
+    severity: "urgent"
+  },
+  {
+    id: "syncope",
+    name_th: "ภาวะหมดสติ / วูบ (Syncope / Presyncope)",
+    keywords: ["หน้ามืด", "จะเป็นลม", "หมดสติ", "วูบ", "หัวลอย"],
+    advice: "นอนราบและยกขาสูง หากมีอาการขณะออกแรง หรือใจสั่นนำ ควรรีบพบแพทย์",
+    severity: "watch"
+  },
+  {
+    id: "uti",
+    name_th: "การติดเชื้อทางเดินปัสสาวะ (Urinary Tract Infection - UTI)",
+    keywords: ["ปัสสาวะแสบขัด", "ปัสสาวะบ่อย", "ปัสสาวะไม่สุด", "ปัสสาวะขุ่น", "ปวดเอว", "ปวดท้องน้อย"],
+    advice: "ดื่มน้ำมากๆ และควรพบแพทย์เพื่อตรวจปัสสาวะ (Sticker/UA)",
+    severity: "routine"
+  }
+];
 
 // ============ SYMPTOM DATABASE ============
 const symptomsDB = [
@@ -577,10 +618,12 @@ async function loadClinicalKB() {
       clinicalKB = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       console.log(`✅ โหลดข้อมูล ${clinicalKB.length} โรคจาก Firebase แล้ว`);
     } else {
-      console.warn("⚠️ ยังไม่มีข้อมูลใน Collection 'conditions' บน Firebase");
+      console.warn("⚠️ ไม่พบข้อมูลใน Firestore ใช้ Default KB สำรองแทน");
+      clinicalKB = defaultMedicalKB;
     }
   } catch (error) {
     console.error("❌ ไม่สามารถโหลดข้อมูลจาก Firebase:", error);
+    clinicalKB = defaultMedicalKB;
   }
 }
 
@@ -608,16 +651,32 @@ function getAllClinicalText(patientData) {
   ].join(' '));
 }
 
+// CRB-65 / CURB-65 Clinical Risk Scoring for CAP
+function calculateCRB65(patientData) {
+  let score = 0;
+  const age = parseInt(patientData.demographics.age) || 0;
+  const rr = parseFloat(patientData.vitals.rr);
+  const bps = parseFloat(patientData.vitals.bps);
+  const bpd = parseFloat(patientData.vitals.bpd);
+
+  if (patientData.vitals.consciousness === 'สับสน' || patientData.vitals.consciousness === 'ซึม/ปลุกยาก') score += 1; // C
+  if (!Number.isNaN(rr) && rr >= 30) score += 1; // R
+  if ((!Number.isNaN(bps) && bps < 90) || (!Number.isNaN(bpd) && bpd <= 60)) score += 1; // B
+  if (age >= 65) score += 1; // 65
+
+  return score;
+}
+
 function evaluateVitals(v) {
   const alerts = [];
   const temp = parseFloat(v.temp), hr = parseFloat(v.hr), spo2 = parseFloat(v.spo2);
   const bps = parseFloat(v.bps), bpd = parseFloat(v.bpd), rr = parseFloat(v.rr);
 
-  if (!Number.isNaN(spo2) && spo2 < 90) alerts.push({ level:'emergency', text:`SpO₂ ${spo2}% ต่ำมาก (Hypoxia)` });
+  if (!Number.isNaN(spo2) && spo2 < 90) alerts.push({ level:'emergency', text:`SpO₂ ${spo2}% ต่ำมากวิกฤต (Severe Hypoxia)` });
   else if (!Number.isNaN(spo2) && spo2 < 94) alerts.push({ level:'urgent', text:`SpO₂ ${spo2}% ต่ำกว่าปกติ` });
 
-  if (!Number.isNaN(bps) && bps < 90) alerts.push({ level:'emergency', text:`ความดันตัวบน ${bps} mmHg ต่ำ (Shock?)` });
-  else if (!Number.isNaN(bps) && bps >= 180) alerts.push({ level:'urgent', text:`ความดันตัวบน ${bps} mmHg สูงวิกฤต` });
+  if (!Number.isNaN(bps) && bps < 90) alerts.push({ level:'emergency', text:`ความดันตัวบน ${bps} mmHg ต่ำ (Hypotension / Shock?)` });
+  else if (!Number.isNaN(bps) && bps >= 180) alerts.push({ level:'urgent', text:`ความดันตัวบน ${bps} mmHg สูงวิกฤต (Hypertensive Crisis)` });
   else if (!Number.isNaN(bps) && bps >= 140) alerts.push({ level:'watch', text:`ความดันตัวบน ${bps} mmHg สูง` });
 
   if (!Number.isNaN(bpd) && bpd >= 100) alerts.push({ level:'urgent', text:`ความดันตัวล่าง ${bpd} mmHg สูง` });
@@ -625,11 +684,11 @@ function evaluateVitals(v) {
   if (!Number.isNaN(hr) && (hr < 40 || hr > 140)) alerts.push({ level:'urgent', text:`ชีพจร ${hr} ครั้ง/นาที ผิดปกติมาก` });
   else if (!Number.isNaN(hr) && (hr < 50 || hr > 120)) alerts.push({ level:'watch', text:`ชีพจร ${hr} ครั้ง/นาที ควรประเมินร่วม` });
 
-  if (!Number.isNaN(rr) && (rr < 8 || rr > 30)) alerts.push({ level:'urgent', text:`อัตราหายใจ ${rr} ครั้ง/นาที ผิดปกติ` });
-  if (!Number.isNaN(temp) && temp >= 40) alerts.push({ level:'urgent', text:`อุณหภูมิ ${temp}°C สูงมาก` });
-  else if (!Number.isNaN(temp) && temp >= 39) alerts.push({ level:'watch', text:`มีไข้สูง ${temp}°C` });
+  if (!Number.isNaN(rr) && (rr < 8 || rr > 30)) alerts.push({ level:'urgent', text:`อัตราหายใจ ${rr} ครั้ง/นาที ผิดปกติ (Tachypnea)` });
+  if (!Number.isNaN(temp) && temp >= 40) alerts.push({ level:'urgent', text:`อุณหภูมิ ${temp}°C สูงมาก (High Fever)` });
+  else if (!Number.isNaN(temp) && temp >= 38.5) alerts.push({ level:'watch', text:`มีไข้สูง ${temp}°C` });
 
-  if (v.consciousness !== 'รู้ตัวดี') alerts.push({ level:'emergency', text:`ระดับความรู้สึกตัว: ${v.consciousness}` });
+  if (v.consciousness !== 'รู้ตัวดี') alerts.push({ level:'emergency', text:`ระดับความรู้สึกตัวผิดปกติ: ${v.consciousness}` });
   return alerts;
 }
 
@@ -643,45 +702,37 @@ function localClinicalPatterns(patientData) {
     name, score: Math.min(score, 95), reasons, advice
   });
 
-  if (has('uri') && (has('fever') || has('headache'))) {
-    add('กลุ่มอาการติดเชื้อทางเดินหายใจ', 62 + (has('fever') ? 10 : 0),
-      ['มีอาการไอ/เจ็บคอ/น้ำมูก', ...(has('fever') ? ['มีไข้ร่วมด้วย'] : [])],
-      'พักผ่อน ดื่มน้ำ และพบแพทย์หากหอบ เหนื่อยมาก หรืออาการแย่ลง');
+  if (has('uri') && (has('fever') || has('dyspnea') || text.includes('ไอ'))) {
+    const crbScore = calculateCRB65(patientData);
+    let capAdvice = "แนะนำพักผ่อน ดื่มน้ำมากๆ หากหอบเหนื่อย ไข้ไม่ลดควรรีบพบแพทย์";
+    if (crbScore >= 2) capAdvice = "⚠️ CRB-65 Score ≥ 2 : เสี่ยงต่อปอดอักเสบปานกลาง-รุนแรง ควรประเมินที่โรงพยาบาล";
+    add('สงสัยปอดอักเสบติดเชื้อ (CAP) / โรคติดเชื้อทางเดินหายใจ', 65 + (has('fever') ? 10 : 0) + (has('dyspnea') ? 10 : 0),
+      ['มีอาการไอ/เจ็บคอ/เสมหะ', ...(has('fever') ? ['มีไข้ร่วมด้วย'] : []), ...(crbScore > 0 ? [`CRB-65 Score = ${crbScore}`] : [])], capAdvice);
   }
-  if (has('gi') && has('abdpain')) {
-    add('กลุ่มอาการทางเดินอาหาร', 60 + (text.includes('เหลวเป็นน้ำ') ? 8 : 0),
-      ['มีอาการทางเดินอาหารร่วมกับปวดท้อง'],
-      'เน้นป้องกันภาวะขาดน้ำ และพบแพทย์หากปวดมาก มีเลือด หรือดื่มน้ำไม่ได้');
-  }
-  if (has('urinary')) {
-    add('กลุ่มอาการทางเดินปัสสาวะ', 58 + (text.includes('แสบขัด') ? 10 : 0),
-      ['มีอาการปัสสาวะผิดปกติ'],
-      'ควรพบแพทย์เพื่อตรวจปัสสาวะ โดยเฉพาะหากมีไข้หรือปวดเอว');
-  }
-  if (has('dizziness')) {
-    add('กลุ่มอาการเวียนศีรษะ/หน้ามืด', 52 + (text.includes('จะเป็นลม') ? 12 : 0),
-      ['มีอาการเวียนหัวหรือหน้ามืด'],
-      'หลีกเลี่ยงการขับรถหรืออยู่ในที่เสี่ยงต่อการล้ม และประเมินทันทีหากเป็นลมหรือมีอ่อนแรงเฉียบพลัน');
-  }
-  if (has('rash')) {
-    add('กลุ่มอาการผื่นผิวหนัง', 52 + (text.includes('จุดเลือดออก') ? 15 : 0),
-      ['มีผื่นหรือความผิดปกติของผิวหนัง'],
-      'ควรให้แพทย์ตรวจหากผื่นลามเร็ว มีไข้สูง หรือมีจุดเลือดออกกดไม่จาง');
-  }
-  if (has('headache')) {
-    add('อาการปวดศีรษะที่ต้องแยกสาเหตุเพิ่มเติม', 45 + (has('fever') ? 8 : 0),
-      ['มีอาการปวดศีรษะ'],
-      'หากปวดรุนแรงฉับพลัน มีอ่อนแรง พูดไม่ชัด หรือซึม ให้ไปฉุกเฉินทันที');
-  }
+
   if (has('chestpain')) {
-    add('อาการเจ็บหน้าอกที่ต้องประเมินโดยแพทย์', 70,
-      ['มีอาการเจ็บหรือแน่นหน้าอก'],
-      'ไม่ควรวินิจฉัยเอง หากเจ็บรุนแรง เหนื่อย เหงื่อแตก หรือร้าวไปแขน/กราม ให้ไปฉุกเฉิน');
+    const isAnginal = text.includes('กดทับ') || text.includes('แน่น') || text.includes('แขนซ้าย') || text.includes('กราม');
+    add('สงสัยกลุ่มอาการหลอดเลือดหัวใจเฉียบพลัน (ACS)', isAnginal ? 88 : 65,
+      ['มีอาการเจ็บ/แน่นหน้าอก', ...(isAnginal ? ['ลักษณะเข้าได้กับ Ischemic chest pain (แน่นกดทับ/ร้าว)'] : [])],
+      'หากมีแน่นหน้าอก เหงื่อแตก หอบเหนื่อยร่วมด้วย ควรไปห้องฉุกเฉินทันที');
   }
-  if (has('dyspnea')) {
-    add('อาการหายใจลำบากที่ต้องประเมินสาเหตุ', 70,
-      ['มีอาการหายใจไม่สะดวกหรือหอบ'],
-      'หากพูดเป็นประโยคไม่ได้ เขียว ซึม หรือ SpO₂ ต่ำ ให้ไปฉุกเฉิน');
+
+  if (has('gi') && has('abdpain')) {
+    add('กลุ่มอาการทางเดินอาหาร / ช่องท้องเฉียบพลัน', 60 + (text.includes('เหลวเป็นน้ำ') ? 8 : 0),
+      ['มีอาการทางเดินอาหารร่วมกับปวดท้อง'],
+      'เน้นป้องกันภาวะขาดน้ำ และพบแพทย์หากปวดมาก กดเจ็บ มีเลือด หรือดื่มน้ำไม่ได้');
+  }
+
+  if (has('urinary')) {
+    add('การติดเชื้อระบบทางเดินปัสสาวะ (UTI)', 68 + (text.includes('แสบขัด') ? 10 : 0),
+      ['มีอาการปัสสาวะผิดปกติ'],
+      'ควรพบแพทย์เพื่อตรวจปัสสาวะ โดยเฉพาะหากมีไข้สูงหรือปวดเอว (สงสัยกรวยไตอักเสบ)');
+  }
+
+  if (has('dizziness')) {
+    add('กลุ่มอาการเวียนศีรษะ/หน้ามืด/ภาวะวูบ (Syncope)', 55 + (text.includes('จะเป็นลม') ? 12 : 0),
+      ['มีอาการเวียนหัว หน้ามืด หรือวูบ'],
+      'หลีกเลี่ยงการขับรถหรือทำกิจกรรมเสี่ยงล้ม ควรตรวจคลื่นไฟฟ้าหัวใจ (ECG) หากมีวูบหมดสติ');
   }
 
   return patterns;
@@ -712,24 +763,24 @@ function analyzeWithFirebase(patientData) {
 
   if (patientData.severity >= 9) {
     setUrgency('urgent');
-    reasons.push(`ความรุนแรง ${patientData.severity}/10`);
+    reasons.push(`ความรุนแรงสูงมาก (${patientData.severity}/10)`);
   } else if (patientData.severity >= 7) {
     setUrgency('watch');
-    reasons.push(`ความรุนแรง ${patientData.severity}/10`);
+    reasons.push(`ความรุนแรงระดับปานกลาง-สูง (${patientData.severity}/10)`);
   }
 
   if (patientData.progression === 'แย่ลงเร็วมาก') {
     setUrgency('urgent');
-    reasons.push('อาการแย่ลงเร็วมาก');
+    reasons.push('แนวโน้มอาการแย่ลงเร็วมาก');
   }
 
   const conditions = [];
   const text = getAllClinicalText(patientData);
 
-  // Firebase knowledge-base scoring
+  // Firebase / Fallback KB scoring
   if (clinicalKB.length > 0) {
     clinicalKB.forEach(disease => {
-      const keywords = disease.keywords || disease.diagnostic_criteria?.required_symptoms || [];
+      const keywords = disease.keywords || [];
       if (!Array.isArray(keywords) || keywords.length === 0) return;
 
       const matched = keywords.filter(k => text.includes(normalizeText(k)));
@@ -737,13 +788,12 @@ function analyzeWithFirebase(patientData) {
       if (matched.length > 0) {
         conditions.push({
           name: disease.name_th || disease.name_en || disease.id,
-          probability: `${Math.max(15, score)}%`,
-          score,
-          level: score >= 70 ? 'high' : score >= 40 ? 'warning' : 'normal',
-          reasons: matched.slice(0, 5).map(k => `พบคำ/อาการที่สอดคล้อง: ${k}`),
-          advice: disease.treatment_protocols?.outpatient_mild?.first_line?.join(', ')
-            || disease.advice || 'ควรให้แพทย์ประเมินเพิ่มเติม',
-          source: 'firebase'
+          probability: `${Math.max(20, Math.min(95, score + 20))}%`,
+          score: score + 20,
+          level: (score + 20) >= 70 ? 'high' : (score + 20) >= 40 ? 'warning' : 'normal',
+          reasons: matched.slice(0, 5).map(k => `พบอาการสอดคล้อง: "${k}"`),
+          advice: disease.advice || 'ควรให้แพทย์ประเมินเพิ่มเติม',
+          source: 'kb'
         });
       }
     });
@@ -772,12 +822,12 @@ function analyzeWithFirebase(patientData) {
 
   if (unique.length === 0) {
     unique.push({
-      name: 'ยังไม่พบรูปแบบอาการที่สรุปได้ชัดเจน',
+      name: 'ไม่พบรูปแบบโรคจำเพาะที่ระบุได้แน่ชัด',
       probability: '-',
       score: 0,
       level: 'normal',
-      reasons: ['ข้อมูลที่มีไม่เพียงพอสำหรับจับคู่รูปแบบ'],
-      advice: 'ใช้ข้อมูลนี้ประกอบการพบแพทย์ ไม่ควรใช้แทนการตรวจวินิจฉัย',
+      reasons: ['ข้อมูลยังมีน้อยเกินไปสำหรับประเมินโรคเฉพาะเจาะจง'],
+      advice: 'แนะให้แพทย์ซักประวัติและตรวจร่างกายเพิ่มเติม',
       source: 'system'
     });
   }
@@ -788,12 +838,12 @@ function analyzeWithFirebase(patientData) {
     reasons,
     vitalAlerts,
     confidence: Math.min(95, Math.round(
-      25 +
-      Math.min(25, patientData.chiefComplaints.length * 8) +
+      30 +
+      Math.min(25, patientData.chiefComplaints.length * 10) +
       (patientData.narrative ? 10 : 0) +
       (patientData.onset ? 8 : 0) +
       (Object.keys(patientData.dynamicAnswers).length ? 12 : 0) +
-      (patientData.vitals.temp || patientData.vitals.hr || patientData.vitals.spo2 ? 10 : 0)
+      (patientData.vitals.temp || patientData.vitals.hr || patientData.vitals.spo2 ? 15 : 0)
     ))
   };
 }
@@ -811,11 +861,10 @@ function showScreen(index) {
 }
 
 function validateAndNext(target) {
-  // Simple validation for first screen
   if (target === 'chief-complaints') {
     const age = document.getElementById('age').value;
     if (!age) {
-      showToast('กรุณากรอกอายุ', true);
+      showToast('กรุณากรอกอายุผู้ป่วยค่ะ', true);
       document.getElementById('age').focus();
       return;
     }
@@ -858,7 +907,7 @@ function toggleSymptom(id, el) {
 }
 function buildDynamicQuestions() {
   const container = document.getElementById('dynamicQuestions');
-  if (patientRecord.chiefComplaints.length === 0) { container.innerHTML = '<div class="alert alert-info">กรุณากลับไปเลือกอาการก่อนหน้า</div>'; return; }
+  if (patientRecord.chiefComplaints.length === 0) { container.innerHTML = '<div class="alert alert-info">กรุณากลับไปเลือกอาการก่อนหน้าก่อนนะคะ</div>'; return; }
   let html = '';
   patientRecord.chiefComplaints.forEach(symptomId => {
     const symptom = symptomsDB.find(s => s.id === symptomId);
@@ -927,12 +976,10 @@ function collectData() {
 async function generateSummary() {
   collectData();
   
-  // Show Loading Spinner
   document.getElementById('firebaseLoading').classList.add('active');
   document.getElementById('summaryContent').innerHTML = '';
   showScreen(screens.indexOf('summary'));
 
-  // Analyze using Firebase Data
   const result = analyzeWithFirebase(patientRecord);
   patientRecord.analysis.urgency = result.urgency;
   patientRecord.analysis.possibleConditions = result.conditions;
@@ -940,11 +987,10 @@ async function generateSummary() {
   patientRecord.analysis.confidence = result.confidence;
   patientRecord.analysis.soapNote = generateSOAP(result);
 
-  // Hide Loading
   setTimeout(() => {
     document.getElementById('firebaseLoading').classList.remove('active');
     renderSummaryHTML(result);
-  }, 800); // Fake delay for UX
+  }, 600);
 }
 
 function renderSummaryHTML(result) {
@@ -952,9 +998,9 @@ function renderSummaryHTML(result) {
   let html = '';
 
   if (p.analysis.urgency === 'emergency') {
-    html += `<div class="alert alert-danger"><span style="font-size:1.5rem;">🚨</span><div><strong>กรณีฉุกเฉิน:</strong> แนะนำให้ไปโรงพยาบาลทันที หรือโทร 1669</div></div>`;
-  } else if (p.severity >= 8) {
-    html += `<div class="alert alert-warning"><span style="font-size:1.5rem;">⚠️</span><div><strong>ควรพบแพทย์ภายใน 24 ชั่วโมง</strong></div></div>`;
+    html += `<div class="alert alert-danger"><span style="font-size:1.5rem;">🚨</span><div><strong>กรณีฉุกเฉินทางการแพทย์:</strong> มีสัญญาณเตือนอันตราย แนะนำไปโรงพยาบาลทันที หรือโทร 1669</div></div>`;
+  } else if (p.severity >= 8 || p.analysis.urgency === 'urgent') {
+    html += `<div class="alert alert-warning"><span style="font-size:1.5rem;">⚠️</span><div><strong>ควรพบแพทย์เร่งด่วน (ภายใน 24 ชั่วโมง)</strong></div></div>`;
   }
 
   html += `<div class="summary-section"><h3>👤 ข้อมูลผู้ป่วย</h3><ul class="summary-list">
@@ -964,7 +1010,7 @@ function renderSummaryHTML(result) {
     <li>ยาประจำ/แพ้ยา: ${p.medications || '-'}</li></ul></div>`;
 
   html += `<div class="summary-section"><h3>📋 อาการหลัก</h3><ul class="summary-list">
-    ${p.chiefComplaints.map(id => { const s = symptomsDB.find(x => x.id === id); return `<li>${s.icon} ${s.name}</li>`; }).join('')}
+    ${p.chiefComplaints.map(id => { const s = symptomsDB.find(x => x.id === id); return `<li>${s ? s.icon : ''} ${s ? s.name : id}</li>`; }).join('')}
   </ul></div>`;
 
   html += `<div class="summary-section"><h3>⏰ ประวัติอาการ</h3><ul class="summary-list">
@@ -974,7 +1020,7 @@ function renderSummaryHTML(result) {
 
   if (p.redFlags.length > 0) {
     html += `<div class="summary-section danger"><h3>🚨 สัญญาณอันตรายที่พบ</h3><ul class="summary-list">
-      ${p.redFlags.map(id => { const rf = redFlagsList.find(r => r.id === id); return `<li>${rf.icon} ${rf.text}</li>`; }).join('')}
+      ${p.redFlags.map(id => { const rf = redFlagsList.find(r => r.id === id); return `<li>${rf ? rf.icon : '⚠️'} ${rf ? rf.text : id}</li>`; }).join('')}
     </ul></div>`;
   }
 
@@ -984,7 +1030,7 @@ function renderSummaryHTML(result) {
     <li>ความดัน: ${p.vitals.bps || '-'}/${p.vitals.bpd || '-'} mmHg</li>
     <li>หายใจ: ${p.vitals.rr || '-'} ครั้ง/นาที</li><li>ความรู้สึกตัว: ${p.vitals.consciousness}</li></ul></div>`;
 
-  html += `<div class="summary-section doctor-only"><h3>🧠 การวิเคราะห์เบื้องต้น (จากฐานข้อมูล Firebase)</h3>
+  html += `<div class="summary-section doctor-only"><h3>🧠 การวิเคราะห์เบื้องต้น (Medical Decision Engine)</h3>
     <div style="margin-bottom: 10px;"><strong>ระดับความเร่งด่วน:</strong> 
       <span class="analysis-badge ${p.analysis.urgency === 'emergency' ? 'high' : ''}">
         ${p.analysis.urgency === 'emergency' ? '🚨 Emergency' : p.analysis.urgency === 'urgent' ? '🟠 Urgent' : p.analysis.urgency === 'watch' ? '🟡 Watch' : '✅ Routine'}
@@ -996,7 +1042,7 @@ function renderSummaryHTML(result) {
   </div>`;
 
   const urgencyMap = {
-    emergency: ['🚨 Emergency — ต้องประเมินฉุกเฉิน', 'emergency'],
+    emergency: ['🚨 Emergency — ต้องประเมินฉุกเฉินทันที', 'emergency'],
     urgent: ['⚠️ Urgent — ควรพบแพทย์โดยเร็ว', 'urgent'],
     watch: ['🟡 Watch — ควรติดตามอาการใกล้ชิด', 'urgent'],
     routine: ['✅ Routine — ใช้ข้อมูลประกอบการประเมิน', 'routine']
@@ -1005,23 +1051,22 @@ function renderSummaryHTML(result) {
 
   html += `<div class="doctor-only triage-box ${triage[1]}">
     <div class="triage-title">${triage[0]}</div>
-    <div><strong>ความครบถ้วนของข้อมูลสำหรับการคัดกรอง:</strong> ${result.confidence}%</div>
+    <div><strong>ความครบถ้วนของข้อมูลประวัติ:</strong> ${result.confidence}%</div>
     ${result.reasons.length ? `<ul class="reason-list">${result.reasons.map(r => `<li>${r}</li>`).join('')}</ul>` : '<div style="margin-top:8px;">ยังไม่พบปัจจัยเร่งด่วนจากข้อมูลที่กรอก</div>'}
   </div>`;
 
-  html += `<div class="doctor-only"><h3 style="color: var(--primary-dark); margin: 20px 0 10px;">🧠 AI Clinical Pattern Analysis</h3>
+  html += `<div class="doctor-only"><h3 style="color: var(--primary-dark); margin: 20px 0 10px;">🧠 Differential Clinical Patterns</h3>
     ${p.analysis.possibleConditions.map(c => `<div class="analysis-card">
       <h4>${c.level === 'high' ? '🔴' : c.level === 'warning' ? '🟡' : '🔵'} ${c.name} <span class="analysis-badge ${c.level === 'high' ? 'high' : c.level === 'warning' ? 'medium' : ''}">${c.probability}</span></h4>
-      <div><strong>เหตุผลที่ระบบพบความสอดคล้อง:</strong></div>
+      <div><strong>เกณฑ์อาการที่สอดคล้อง:</strong></div>
       <ul class="reason-list">${(c.reasons || []).map(r => `<li>${r}</li>`).join('') || '<li>จับคู่จากรูปแบบอาการโดยรวม</li>'}</ul>
-      <div style="margin-top:10px;"><strong>คำแนะนำ:</strong> ${c.advice}</div>
+      <div style="margin-top:10px;"><strong>แนวทางดูแลเบื้องต้น:</strong> ${c.advice}</div>
     </div>`).join('')}
-    <div class="alert alert-info" style="margin-top:16px;"><span>ℹ️</span><div><strong>ข้อจำกัด:</strong> คะแนนความสอดคล้องเป็นการคัดกรองจากข้อมูลที่ผู้ใช้กรอกและฐานความรู้ ไม่ใช่ความน่าจะเป็นทางการแพทย์หรือการวินิจฉัยยืนยัน</div></div>
   </div>`;
 
   html += `<div class="doctor-only"><h3 style="color: var(--primary-dark); margin: 20px 0 10px;">📝 SOAP Note (สำหรับแพทย์)</h3>
     <div class="soap-note">
-      <button class="copy-btn-soap" onclick="copySummary()">Copy</button>
+      <button class="copy-btn-soap" onclick="copySummary()">Copy SOAP</button>
       ${p.analysis.soapNote}
     </div>
   </div>`;
@@ -1032,41 +1077,42 @@ function renderSummaryHTML(result) {
 function generateSOAP(result) {
   const p = patientRecord;
   let S = `Age: ${p.demographics.age || '-'} y/o | Sex: ${p.demographics.gender || '-'}\n`;
-  S += `PMHx: ${p.chronicDiseases || '-'} | Meds/Allergy: ${p.medications || '-'}\n`;
-  S += `CC: ${p.chiefComplaints.map(id => symptomsDB.find(s=>s.id===id)?.name).join(', ') || '-'}\n`;
-  S += `Onset: ${p.onset || '-'} | Progression: ${p.progression || '-'} | Severity: ${p.severity}/10\n`;
-  S += `PI: ${p.narrative || '-'}\n`;
+  S += `PMHx: ${p.chronicDiseases || 'None'} | Meds/Allergy: ${p.medications || 'None'}\n`;
+  S += `CC: ${p.chiefComplaints.map(id => symptomsDB.find(s=>s.id===id)?.name).join(', ') || 'Unspecified'}\n`;
+  S += `Onset: ${p.onset || '-'} | Course: ${p.progression || '-'} | Pain Scale: ${p.severity}/10\n`;
+  S += `HPI: ${p.narrative || '-'}\n`;
   Object.keys(p.dynamicAnswers).forEach(key => {
     const val = p.dynamicAnswers[key];
     if (val && (typeof val === 'string' ? val.trim() : val.length > 0)) S += `  • ${key}: ${Array.isArray(val) ? val.join(', ') : val}\n`;
   });
 
-  let O = `T: ${p.vitals.temp || '-'}°C | HR: ${p.vitals.hr || '-'} bpm | RR: ${p.vitals.rr || '-'}\n`;
-  O += `BP: ${p.vitals.bps || '-'}/${p.vitals.bpd || '-'} mmHg | SpO2: ${p.vitals.spo2 || '-'}%\n`;
+  let O = `Vitals: T ${p.vitals.temp || '-'}°C, HR ${p.vitals.hr || '-'} bpm, RR ${p.vitals.rr || '-'} /min\n`;
+  O += `BP ${p.vitals.bps || '-'}/${p.vitals.bpd || '-'} mmHg, SpO2 ${p.vitals.spo2 || '-%'}\n`;
   O += `Consciousness: ${p.vitals.consciousness}\n`;
 
   let A = '';
   if (p.redFlags.length > 0) {
-    A += `🚨 RED FLAGS DETECTED (${p.redFlags.length} items)\n`;
+    A += `🚨 RED FLAGS DETECTED (${p.redFlags.length} items):\n`;
     p.redFlags.forEach(id => { const rf = redFlagsList.find(r => r.id === id); if (rf) A += `  • ${rf.text}\n`; });
   }
-  result.conditions.forEach(c => { A += `${c.level === 'high' ? '🔴' : '🟡'} ${c.name} (Prob: ${c.probability})\n`; });
+  A += `Impression / DDx:\n`;
+  result.conditions.forEach(c => { A += `  - ${c.name} (${c.probability})\n`; });
 
   let P = '';
-  if (result.urgency === 'emergency') P = '⚠️ EMERGENCY TRIAGE: ส่งห้องฉุกเฉินทันที/โทร 1669\n• Monitor vital signs closely';
-  else if (result.urgency === 'urgent') P = '🟠 URGENT: ควรพบแพทย์โดยเร็ว (Same day visit)';
-  else if (result.urgency === 'watch') P = '🟡 WATCH: ติดตามอาการอย่างใกล้ชิด และพบแพทย์หากแย่ลง';
-  else P = '✅ ROUTINE: ใช้ข้อมูลประกอบการพบแพทย์และติดตามอาการ';
+  if (result.urgency === 'emergency') P = '⚠️ EMERGENCY: Refer to Emergency Department (ER) immediately\n• Continuous Vital Signs Monitoring';
+  else if (result.urgency === 'urgent') P = '🟠 URGENT: Urgent Outpatient Evaluation (Same Day Visit)';
+  else if (result.urgency === 'watch') P = '🟡 WATCH: Close observation, seek medical care if worsening';
+  else P = '✅ ROUTINE: Routine clinical evaluation & symptomatic treatment';
 
-  return `===== SOAP NOTE =====\n\n[S] SUBJECTIVE\n${S}\n[O] OBJECTIVE\n${O}\n[A] ASSESSMENT\n${A}\n[P] PLAN\n${P}\n\n⚠️ Disclaimer: ระบบนี้เป็น Clinical Decision Support ไม่ใช่การวินิจฉัยยืนยัน`;
+  return `===== CLINICAL HANDOVER (SOAP NOTE) =====\n\n[S] SUBJECTIVE\n${S}\n[O] OBJECTIVE\n${O}\n[A] ASSESSMENT\n${A}\n[P] PLAN\n${P}\n\n⚠️ Disclaimer: For Clinical Decision Support only. Not a definitive diagnosis.`;
 }
 
 function copySummary() {
-  navigator.clipboard.writeText(patientRecord.analysis.soapNote).then(() => showToast('✅ คัดลอก SOAP Note แล้ว')).catch(() => showToast('❌ ไม่สามารถคัดลอกได้', true));
+  navigator.clipboard.writeText(patientRecord.analysis.soapNote).then(() => showToast('✅ คัดลอก SOAP Note เรียบร้อยแล้ว')).catch(() => showToast('❌ ไม่สามารถคัดลอกได้', true));
 }
 function showEmergency() { document.getElementById('emergencyModal').classList.add('active'); }
 function closeEmergency() { document.getElementById('emergencyModal').classList.remove('active'); }
-function resetAll() { if (confirm('ต้องการเริ่มใหม่หรือไม่? ข้อมูลทั้งหมดจะหายไป')) location.reload(); }
+function resetAll() { if (confirm('คุณชินอิจิต้องการเริ่มใหม่หรือไม่คะ? ข้อมูลที่กรอกไว้จะถูกล้างออกค่ะ')) location.reload(); }
 
 // ============ FIREBASE SAVE & LOAD ============
 async function saveCaseToFirebase() {
@@ -1077,10 +1123,10 @@ async function saveCaseToFirebase() {
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
     });
     patientRecord.id = caseRef.id;
-    showToast('✅ บันทึกเคสเรียบร้อยแล้ว');
+    showToast('✅ บันทึกเคสลงฐานข้อมูลเรียบร้อยแล้วค่ะ');
   } catch (e) {
     console.error(e);
-    showToast('❌ บันทึกไม่สำเร็จ', true);
+    showToast('❌ บันทึกไม่สำเร็จ (ตรวจสอบการเชื่อมต่อ Firebase)', true);
   }
 }
 
@@ -1088,29 +1134,28 @@ async function loadLastCase() {
   try {
     const snapshot = await db.collection('cases').orderBy('timestamp', 'desc').limit(1).get();
     if (snapshot.empty) {
-      showToast('ไม่พบข้อมูลเก่า');
+      showToast('ไม่พบข้อมูลเคสเก่าในฐานข้อมูลค่ะ');
       return;
     }
     const doc = snapshot.docs[0];
     const data = doc.data();
     
-    // Restore state
     patientRecord = data;
     
-    // Populate inputs
     document.getElementById('age').value = data.demographics.age || '';
-    if(data.demographics.gender) document.querySelector(`input[name="gender"][value="${data.demographics.gender}"]`).checked = true;
+    if(data.demographics.gender) {
+      const gEl = document.querySelector(`input[name="gender"][value="${data.demographics.gender}"]`);
+      if(gEl) gEl.checked = true;
+    }
     document.getElementById('chronicDiseases').value = data.chronicDiseases || '';
     document.getElementById('medications').value = data.medications || '';
     
-    // Trigger UI updates
     if(data.demographics.gender === 'หญิง') document.getElementById('pregnancy-group').style.display = 'block';
     
-    // Re-render summary immediately
     const result = analyzeWithFirebase(patientRecord);
     renderSummaryHTML(result);
     showScreen(screens.indexOf('summary'));
-    showToast('📂 โหลดข้อมูลเรียบร้อยแล้ว');
+    showToast('📂 โหลดข้อมูลเคสล่าสุดเรียบร้อยแล้วค่ะ');
 
   } catch (e) {
     console.error(e);
@@ -1137,7 +1182,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // โหลดข้อมูลโรคจาก Firebase ทันทีที่เปิดหน้าเว็บ
   await loadClinicalKB();
 });
 </script>
