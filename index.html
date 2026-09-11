@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>หมอน้อย — AI Clinical Decision Support Assistant (CDSS)</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- 1. Library html2canvas สำหรับการจับภาพหน้าจอ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
 <style>
   :root {
     --primary: #2563eb;
@@ -36,7 +40,8 @@
   .logo-icon { font-size: 2.2rem; }
 
   .mode-toggle { display: flex; background: rgba(255,255,255,0.18); border-radius: 50px; padding: 4px; }
-  .mode-btn { padding: 8px 18px; border: none; background: transparent; color: white; border-radius: 50px; cursor: pointer; font-weight: 600; font-size: 0.9rem; font-family: inherit; }
+  .mode-btn { padding: 8px 18px; border: none; background: transparent; color: white; border-radius: 50px; cursor: pointer; font-weight: 600; font-size: 0.9rem; font-family: inherit; transition: all 0.2s; }
+  .mode-btn:hover { background: rgba(255,255,255,0.3); }
   .mode-btn.active { background: white; color: var(--primary-dark); }
 
   .progress-container { max-width: 960px; margin: 20px auto 10px; padding: 0 20px; }
@@ -48,7 +53,9 @@
   .card { background: var(--card); border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow); margin-bottom: 24px; }
   
   .screen { display: none; }
-  .screen.active { display: block; }
+  .screen.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
   .screen-title { font-size: 1.55rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 6px; }
   .screen-subtitle { color: var(--text-light); margin-bottom: 24px; font-size: 0.95rem; }
 
@@ -61,21 +68,23 @@
   .radio-group, .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
   .radio-option, .checkbox-option { flex: 1; min-width: 120px; }
   .radio-option input, .checkbox-option input { display: none; }
-  .radio-option label, .checkbox-option label { display: block; padding: 12px 16px; border: 2px solid var(--border); border-radius: var(--radius-sm); text-align: center; cursor: pointer; font-weight: 600; background: #fafbfc; margin: 0; font-size: 0.95rem; }
-  .radio-option input:checked + label, .checkbox-option input:checked + label { background: var(--primary); color: white; border-color: var(--primary); }
+  .radio-option label, .checkbox-option label { display: block; padding: 12px 16px; border: 2px solid var(--border); border-radius: var(--radius-sm); text-align: center; cursor: pointer; font-weight: 600; background: #fafbfc; margin: 0; font-size: 0.95rem; transition: all 0.2s; }
+  .radio-option input:checked + label, .checkbox-option input:checked + label { background: var(--primary); color: white; border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2); }
 
   .symptom-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin-top: 12px; }
-  .symptom-card { padding: 18px 12px; border: 2px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; background: #fafbfc; text-align: center; user-select: none; }
-  .symptom-card.selected { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; border-color: var(--primary-dark); }
+  .symptom-card { padding: 18px 12px; border: 2px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; background: #fafbfc; text-align: center; user-select: none; transition: all 0.2s; }
+  .symptom-card:hover { border-color: var(--primary); }
+  .symptom-card.selected { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; border-color: var(--primary-dark); transform: scale(1.02); }
   .symptom-icon { font-size: 2.2rem; display: block; margin-bottom: 6px; }
 
   .severity-container { padding: 16px 0; }
   .severity-scale { display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.85rem; color: var(--text-light); font-weight: 600; }
   .severity-value { text-align: center; font-size: 3.5rem; font-weight: 800; color: var(--primary); margin: 6px 0; }
   input[type="range"] { width: 100%; height: 12px; border-radius: 50px; background: linear-gradient(90deg, #10b981 0%, #f59e0b 50%, #ef4444 100%); outline: none; -webkit-appearance: none; }
-  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 30px; height: 30px; border-radius: 50%; background: white; border: 4px solid var(--primary); cursor: pointer; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 30px; height: 30px; border-radius: 50%; background: white; border: 4px solid var(--primary); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
 
-  .red-flag-item { display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px; border: 2px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 10px; cursor: pointer; background: #fafbfc; }
+  .red-flag-item { display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px; border: 2px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 10px; cursor: pointer; background: #fafbfc; transition: all 0.2s; }
+  .red-flag-item:hover { border-color: var(--danger); }
   .red-flag-item.selected { border-color: var(--danger); background: #fee2e2; }
   .red-flag-icon { font-size: 1.6rem; flex-shrink: 0; }
   .red-flag-text { flex: 1; font-weight: 600; color: #7f1d1d; font-size: 0.95rem; }
@@ -87,12 +96,14 @@
   .vital-unit { font-size: 0.8rem; color: var(--text-light); margin-top: 4px; text-align: center; font-weight: 600; }
 
   .btn-group { display: flex; gap: 12px; margin-top: 28px; flex-wrap: wrap; }
-  .btn { padding: 14px 28px; border: none; border-radius: var(--radius-sm); font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 8px; justify-content: center; }
+  .btn { padding: 14px 28px; border: none; border-radius: var(--radius-sm); font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 8px; justify-content: center; transition: all 0.2s; }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
   .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; flex: 1; min-width: 160px; }
   .btn-secondary { background: white; color: var(--text); border: 2px solid var(--border); }
   .btn-danger { background: linear-gradient(135deg, var(--danger), var(--danger-dark)); color: white; }
+  .btn-success { background: linear-gradient(135deg, var(--accent), #059669); color: white; }
 
-  .emergency-float { position: fixed; bottom: 20px; right: 20px; background: linear-gradient(135deg, var(--danger), var(--danger-dark)); color: white; padding: 16px 26px; border-radius: 50px; border: none; font-weight: 700; font-size: 1.05rem; cursor: pointer; z-index: 99; display: flex; align-items: center; gap: 10px; font-family: inherit; }
+  .emergency-float { position: fixed; bottom: 20px; right: 20px; background: linear-gradient(135deg, var(--danger), var(--danger-dark)); color: white; padding: 16px 26px; border-radius: 50px; border: none; font-weight: 700; font-size: 1.05rem; cursor: pointer; z-index: 99; display: flex; align-items: center; gap: 10px; font-family: inherit; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); }
 
   .triage-badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; border-radius: 50px; font-size: 1.1rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: white; margin-bottom: 14px; }
   .triage-badge.urgent { background: linear-gradient(135deg, var(--danger), var(--danger-dark)); }
@@ -103,7 +114,8 @@
   .sbar-header { background: #1e293b; color: white; padding: 14px 20px; font-weight: 700; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; }
   .sbar-section { padding: 18px 20px; border-bottom: 1px solid var(--border); }
   .sbar-section:last-child { border-bottom: none; }
-  .sbar-title { font-weight: 800; font-size: 1.05rem; margin-bottom: 8px; color: var(--primary-dark); }
+  .sbar-title { font-weight: 800; font-size: 1.05rem; margin-bottom: 8px; color: var(--primary-dark); display: flex; align-items: center; gap: 8px; }
+  .sbar-title span { background: var(--primary-light); color: var(--primary-dark); padding: 2px 8px; border-radius: 6px; font-size: 0.9em; }
   .sbar-content { font-size: 0.95rem; color: #334155; white-space: pre-line; line-height: 1.7; }
 
   .alert { padding: 16px 20px; border-radius: var(--radius-sm); margin-bottom: 20px; display: flex; align-items: flex-start; gap: 14px; }
@@ -114,16 +126,26 @@
   .loading-spinner { display: none; text-align: center; padding: 30px; color: var(--primary-dark); font-weight: 700; font-size: 1.1rem; }
   .loading-spinner.active { display: block; }
 
-  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.7); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.85); z-index: 2000; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
   .modal-overlay.active { display: flex; }
-  .modal { background: white; border-radius: var(--radius); padding: 32px; max-width: 500px; width: 100%; text-align: center; }
+  .modal { background: white; border-radius: var(--radius); padding: 32px; max-width: 500px; width: 100%; text-align: center; box-shadow: var(--shadow-lg); }
   
-  @media print { .header, .progress-container, .btn-group, .emergency-float, .no-print { display: none !important; } body { background: white; padding: 0; } }
+  .image-preview-modal { max-width: 90vw; width: auto; background: transparent; padding: 0; }
+  .image-preview-container { background: white; padding: 10px; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); max-height: 85vh; overflow-y: auto; }
+  #previewImg { max-width: 100%; height: auto; display: block; border-radius: 8px; }
+  .modal-controls { margin-top: 20px; display: flex; justify-content: center; gap: 15px; }
+
+  @media print { 
+    .header, .progress-container, .btn-group, .emergency-float, .no-print, .mode-toggle { display: none !important; } 
+    body { background: white; padding: 0; } 
+    .card { box-shadow: none; border: none; }
+    .sbar-container { border: 1px solid #000; }
+  }
 </style>
 </head>
 <body>
 
-<header class="header">
+<header class="header no-print">
   <div class="header-content">
     <div class="logo">
       <span class="logo-icon">🩺</span>
@@ -134,7 +156,8 @@
     </div>
     <div class="mode-toggle">
       <button class="mode-btn active" data-mode="patient" onclick="switchMode('patient')">👤 พยาบาลคัดกรอง</button>
-      <button class="mode-btn" data-mode="doctor" onclick="switchMode('doctor')">🩺 รายงาน SBAR (แพทย์)</button>
+      <!-- ปุ่มนี้ถูกแก้ให้เรียก handleDoctorMode() -->
+      <button class="mode-btn" data-mode="doctor" onclick="handleDoctorMode()">🩺 รายงาน SBAR (แพทย์)</button>
     </div>
   </div>
 </header>
@@ -315,6 +338,7 @@
       <div class="btn-group no-print">
         <button class="btn btn-secondary" onclick="copySBARText()">📋 คัดลอก SBAR Text</button>
         <button class="btn btn-secondary" onclick="window.print()">🖨️ พิมพ์รายงาน / Save PDF</button>
+        <button class="btn btn-success" onclick="captureSBARasImage()">📸 บันทึกเป็นรูปภาพ (PNG)</button>
         <button class="btn btn-danger" onclick="showEmergencyModal()">🚑 โทรแจ้ง 1669 / ER</button>
         <button class="btn btn-primary" onclick="resetAll()">🔄 ประเมินผู้ป่วยรายใหม่</button>
       </div>
@@ -337,16 +361,23 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="imagePreviewModal">
+  <div class="modal image-preview-modal">
+    <div class="image-preview-container">
+      <img id="previewImg" src="" alt="SBAR Report Preview">
+    </div>
+    <div class="modal-controls no-print">
+      <button class="btn btn-success" onclick="downloadImage()">⬇️ ดาวน์โหลด PNG</button>
+      <button class="btn btn-secondary" onclick="closeImageModal()">✖ ปิด</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ FIREBASE COMPAT SDK ============ -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
-/* ============================================================
-   🩺 หมอน้อย AI Clinical Decision Support Engine (CDSS Core)
-   ============================================================ */
-
-// FIREBASE CONFIGURATION
 const firebaseConfig = {
   apiKey: "AIzaSyBoElKLMwgrtUiy52aoXwKwlVrs7hlvIUA",
   authDomain: "doctor-app-34889.firebaseapp.com",
@@ -356,12 +387,9 @@ const firebaseConfig = {
   appId: "1:526663189965:web:50705eb6b57121d98c3084"
 };
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// STATE MANAGEMENT
 const patientRecord = {
   demographics: { age: null, gender: null, pregnancy: null },
   chronicDiseases: '', medications: '', chiefComplaints: [],
@@ -409,44 +437,17 @@ const redFlagsDB = [
   { id: 'rf7', icon: '🥶', text: 'เหงื่อตก ตัวเย็น ซีด ความดันตก หน้ามืดจะเป็นลม (Signs of Shock)' }
 ];
 
-// CLINICAL ENGINE CALCULATIONS
 function calculateNEWS2(vitals) {
   let score = 0;
-  const temp = parseFloat(vitals.temp);
-  const hr = parseFloat(vitals.hr);
-  const rr = parseFloat(vitals.rr);
-  const bps = parseFloat(vitals.bps);
-  const spo2 = parseFloat(vitals.spo2);
+  const temp = parseFloat(vitals.temp), hr = parseFloat(vitals.hr), rr = parseFloat(vitals.rr);
+  const bps = parseFloat(vitals.bps), spo2 = parseFloat(vitals.spo2);
 
-  if (!isNaN(rr)) {
-    if (rr <= 8 || rr >= 25) score += 3;
-    else if (rr >= 21 && rr <= 24) score += 2;
-    else if (rr >= 9 && rr <= 11) score += 1;
-  }
-  if (!isNaN(spo2)) {
-    if (spo2 <= 91) score += 3;
-    else if (spo2 >= 92 && spo2 <= 93) score += 2;
-    else if (spo2 >= 94 && spo2 <= 95) score += 1;
-  }
-  if (!isNaN(bps)) {
-    if (bps <= 90 || bps >= 220) score += 3;
-    else if (bps >= 91 && bps <= 100) score += 2;
-    else if (bps >= 101 && bps <= 110) score += 1;
-  }
-  if (!isNaN(hr)) {
-    if (hr <= 40 || hr >= 131) score += 3;
-    else if (hr >= 111 && hr <= 130) score += 2;
-    else if (hr >= 41 && hr <= 50) score += 1;
-    else if (hr >= 91 && hr <= 110) score += 1;
-  }
-  if (!isNaN(temp)) {
-    if (temp <= 35.0) score += 3;
-    else if (temp >= 39.1) score += 2;
-    else if (temp >= 38.1 && temp <= 39.0) score += 1;
-    else if (temp >= 35.1 && temp <= 36.0) score += 1;
-  }
+  if (!isNaN(rr)) { if (rr <= 8 || rr >= 25) score += 3; else if (rr >= 21 && rr <= 24) score += 2; else if (rr >= 9 && rr <= 11) score += 1; }
+  if (!isNaN(spo2)) { if (spo2 <= 91) score += 3; else if (spo2 >= 92 && spo2 <= 93) score += 2; else if (spo2 >= 94 && spo2 <= 95) score += 1; }
+  if (!isNaN(bps)) { if (bps <= 90 || bps >= 220) score += 3; else if (bps >= 91 && bps <= 100) score += 2; else if (bps >= 101 && bps <= 110) score += 1; }
+  if (!isNaN(hr)) { if (hr <= 40 || hr >= 131) score += 3; else if (hr >= 111 && hr <= 130) score += 2; else if (hr >= 41 && hr <= 50) score += 1; else if (hr >= 91 && hr <= 110) score += 1; }
+  if (!isNaN(temp)) { if (temp <= 35.0) score += 3; else if (temp >= 39.1) score += 2; else if (temp >= 38.1 && temp <= 39.0) score += 1; else if (temp >= 35.1 && temp <= 36.0) score += 1; }
   if (vitals.consciousness && vitals.consciousness !== 'รู้ตัวดี') score += 3;
-
   return score;
 }
 
@@ -472,85 +473,38 @@ function evaluateTriage(pRecord) {
   const isUnconscious = pRecord.vitals.consciousness !== 'รู้ตัวดี';
 
   if (redFlagsCount > 0 || news2 >= 7 || (!isNaN(spo2) && spo2 < 90) || (!isNaN(bps) && bps < 90) || isUnconscious) {
-    return {
-      level: 'Urgent',
-      badgeClass: 'urgent',
-      title: '🚨 URGENT (Emergency)',
-      color: '#ef4444',
-      news2, curb65,
-      recommendation: 'ส่งผู้ป่วยเข้าห้องฉุกเฉิน (ER) ทันที / โทร 1669 เตรียม O2, EKG 12 Leads, เปิด Vena Cation Line และติดตาม V/S ทุก 5 นาที'
-    };
+    return { level: 'Urgent', badgeClass: 'urgent', title: '🚨 URGENT (Emergency)', color: '#ef4444', news2, curb65, recommendation: 'ส่งผู้ป่วยเข้าห้องฉุกเฉิน (ER) ทันที / โทร 1669 เตรียม O2, EKG 12 Leads, เปิด Vena Cation Line และติดตาม V/S ทุก 5 นาที' };
   }
-
   if ((news2 >= 3 && news2 <= 6) || pRecord.severity >= 7 || pRecord.progression === 'แย่ลงเร็วมาก' || (curb65 !== null && curb65 >= 1)) {
-    return {
-      level: 'Consult GP',
-      badgeClass: 'gp',
-      title: '⚠️ CONSULT GP (Moderate Risk)',
-      color: '#f59e0b',
-      news2, curb65,
-      recommendation: 'ส่งพบแพทย์ตรวจแผนกผู้ป่วยนอก (OPD) ภายใน 24 ชม. และเตรียมการตรวจเพิ่มเติมเบื้องต้น'
-    };
+    return { level: 'Consult GP', badgeClass: 'gp', title: '⚠️ CONSULT GP (Moderate Risk)', color: '#f59e0b', news2, curb65, recommendation: 'ส่งพบแพทย์ตรวจแผนกผู้ป่วยนอก (OPD) ภายใน 24 ชม. และเตรียมการตรวจเพิ่มเติมเบื้องต้น' };
   }
-
-  return {
-    level: 'Self-Monitor',
-    badgeClass: 'self',
-    title: '✅ SELF-MONITOR (Low Risk)',
-    color: '#10b981',
-    news2, curb65,
-    recommendation: 'สังเกตอาการเบื้องต้น พักผ่อน ดื่มน้ำอย่างเพียงพอ หากพบ Red Flags หรืออาการแย่ลงให้มาพบแพทย์ทันที'
-  };
+  return { level: 'Self-Monitor', badgeClass: 'self', title: '✅ SELF-MONITOR (Low Risk)', color: '#10b981', news2, curb65, recommendation: 'สังเกตอาการเบื้องต้น พักผ่อน ดื่มน้ำอย่างเพียงพอ หากพบ Red Flags หรืออาการแย่ลงให้มาพบแพทย์ทันที' };
 }
 
-// FIREBASE INTEGRATION WITH TIMEOUT & FALLBACK
 async function fetchFirebaseKnowledge() {
-  const timeoutPromise = new Promise((_, reject) => 
-    setTimeout(() => reject(new Error("Firebase Timeout")), 2500)
-  );
-
+  const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Firebase Timeout")), 2500));
   try {
-    const fetchPromise = db.collection('conditions').get();
-    const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
-    
+    const snapshot = await Promise.race([db.collection('conditions').get(), timeoutPromise]);
     firebaseConditionsMap = {};
-    if (snapshot && !snapshot.empty) {
-      snapshot.docs.forEach(doc => {
-        firebaseConditionsMap[doc.id] = doc.data();
-      });
-      console.log("🔥 Successfully fetched clinical knowledge from Firebase Firestore!");
-    }
-  } catch (err) {
-    console.warn("⚠️ Firebase fetch bypassed or offline. Using Rule Engine Fallback.", err.message);
-  }
+    if (snapshot && !snapshot.empty) { snapshot.docs.forEach(doc => { firebaseConditionsMap[doc.id] = doc.data(); }); }
+  } catch (err) { console.warn("⚠️ Firebase fetch bypassed.", err.message); }
 }
 
 function getDifferentialDiagnosis(pRecord) {
   const ddx = [];
-  const cc = pRecord.chiefComplaints;
-
-  cc.forEach(symptomId => {
+  pRecord.chiefComplaints.forEach(symptomId => {
     if (firebaseConditionsMap[symptomId]) {
       const fbData = firebaseConditionsMap[symptomId];
-      ddx.push({
-        name: fbData.diseaseName || symptomId,
-        probability: fbData.probability || 'Medium',
-        advice: fbData.advice || 'ตรวจประเมินเพิ่มเติมโดยแพทย์'
-      });
+      ddx.push({ name: fbData.diseaseName || symptomId, probability: fbData.probability || 'Medium', advice: fbData.advice || 'ตรวจประเมินเพิ่มเติมโดยแพทย์' });
     }
   });
-
   if (ddx.length === 0) {
-    if (cc.includes('chestpain')) ddx.push({ name: 'Suspected Acute Coronary Syndrome (ACS)', probability: 'High', advice: 'ทำ EKG 12 Leads ทันที และเจาะ Cardiac Enzymes' });
-    if (cc.includes('dyspnea') || cc.includes('uri')) ddx.push({ name: 'Acute Respiratory Tract Infection / CAP', probability: 'Medium-High', advice: 'ส่ง CXR และประเมิน CURB-65 Score' });
-    if (cc.includes('abdpain')) ddx.push({ name: 'Acute Abdomen (Appendicitis / Cholecystitis)', probability: 'Medium', advice: 'ตรวจ Abdomen Palpation และ CBC/LFT' });
-    if (cc.includes('urinary')) ddx.push({ name: 'Urinary Tract Infection (UTI) / Pyelonephritis', probability: 'High', advice: 'ส่ง Urine Analysis (UA) และ Culture' });
+    if (pRecord.chiefComplaints.includes('chestpain')) ddx.push({ name: 'Suspected Acute Coronary Syndrome (ACS)', probability: 'High', advice: 'ทำ EKG 12 Leads ทันที และเจาะ Cardiac Enzymes' });
+    if (pRecord.chiefComplaints.includes('dyspnea') || pRecord.chiefComplaints.includes('uri')) ddx.push({ name: 'Acute Respiratory Tract Infection / CAP', probability: 'Medium-High', advice: 'ส่ง CXR และประเมิน CURB-65 Score' });
+    if (pRecord.chiefComplaints.includes('abdpain')) ddx.push({ name: 'Acute Abdomen (Appendicitis / Cholecystitis)', probability: 'Medium', advice: 'ตรวจ Abdomen Palpation และ CBC/LFT' });
+    if (pRecord.chiefComplaints.includes('urinary')) ddx.push({ name: 'Urinary Tract Infection (UTI) / Pyelonephritis', probability: 'High', advice: 'ส่ง Urine Analysis (UA) และ Culture' });
   }
-
-  if (ddx.length === 0) {
-    ddx.push({ name: 'Non-specific Symptom Complex', probability: 'Low', advice: 'ตรวจประเมินทางคลินิกเพิ่มเติมโดยแพทย์' });
-  }
-
+  if (ddx.length === 0) ddx.push({ name: 'Non-specific Symptom Complex', probability: 'Low', advice: 'ตรวจประเมินทางคลินิกเพิ่มเติมโดยแพทย์' });
   return ddx;
 }
 
@@ -558,29 +512,15 @@ function generateSBAR(pRecord, triageResult, ddxList) {
   const demo = pRecord.demographics;
   const vitals = pRecord.vitals;
   const ccNames = pRecord.chiefComplaints.map(id => symptomsDB.find(s=>s.id===id)?.name || id).join(', ');
-
-  const S = `ผู้ป่วย ${demo.gender || 'ไม่ระบุเพศ'} อายุ ${demo.age || '-'} ปี มาด้วย Chief Complaint: ${ccNames || 'ไม่ระบุ'}\n` +
-            `สัญญาณชีพ: Temp ${vitals.temp || '-'} °C, HR ${vitals.hr || '-'} bpm, RR ${vitals.rr || '-'} /min, BP ${vitals.bps || '-'}/${vitals.bpd || '-'} mmHg, SpO₂ ${vitals.spo2 || '-'}%, ความรู้สึกตัว: ${vitals.consciousness}`;
-
-  let B = `โรคประจำตัว: ${pRecord.chronicDiseases || 'ปฏิเสธ'}\n` +
-          `ยาประจำ/ประวัติแพ้ยา: ${pRecord.medications || 'ปฏิเสธ'}\n` +
-          `ประวัติอาการ (HPI): เริ่มเป็นเมื่อ ${pRecord.onset || '-'} แนวโน้ม ${pRecord.progression || '-'} (Pain Scale: ${pRecord.severity}/10)`;
+  const S = `ผู้ป่วย ${demo.gender || 'ไม่ระบุเพศ'} อายุ ${demo.age || '-'} ปี มาด้วย Chief Complaint: ${ccNames || 'ไม่ระบุ'}\nสัญญาณชีพ: Temp ${vitals.temp || '-'} °C, HR ${vitals.hr || '-'} bpm, RR ${vitals.rr || '-'} /min, BP ${vitals.bps || '-'}/${vitals.bpd || '-'} mmHg, SpO₂ ${vitals.spo2 || '-'}%, ความรู้สึกตัว: ${vitals.consciousness}`;
+  let B = `โรคประจำตัว: ${pRecord.chronicDiseases || 'ปฏิเสธ'}\nยาประจำ/ประวัติแพ้ยา: ${pRecord.medications || 'ปฏิเสธ'}\nประวัติอาการ (HPI): เริ่มเป็นเมื่อ ${pRecord.onset || '-'} แนวโน้ม ${pRecord.progression || '-'} (Pain Scale: ${pRecord.severity}/10)`;
   if (demo.pregnancy === 'ใช่') B += ` | 🤰 ตั้งครรภ์`;
   if (pRecord.narrative) B += `\nรายละเอียดเพิ่มเติม: "${pRecord.narrative}"`;
-
   let A = `ระดับความเร่งด่วน: [ ${triageResult.title} ] (NEWS2 Score: ${triageResult.news2}${triageResult.curb65 !== null ? `, CURB-65 Score: ${triageResult.curb65}` : ''})\n`;
-  if (pRecord.redFlags.length > 0) {
-    const rfTexts = pRecord.redFlags.map(id => redFlagsDB.find(r=>r.id===id)?.text).join('\n  • ');
-    A += `🚩 Red Flags ที่พบ:\n  • ${rfTexts}\n`;
-  }
+  if (pRecord.redFlags.length > 0) { const rfTexts = pRecord.redFlags.map(id => redFlagsDB.find(r=>r.id===id)?.text).join('\n  • '); A += `🚩 Red Flags ที่พบ:\n  • ${rfTexts}\n`; }
   A += `ข้อสันนิษฐานโรคที่เป็นไปได้ (Differential Diagnosis):\n`;
-  ddxList.forEach((item, idx) => {
-    A += `  ${idx + 1}. ${item.name} (${item.probability}) - ${item.advice}\n`;
-  });
-
-  let R = `แนวทางปฏิบัติ: ${triageResult.recommendation}\n` +
-          `การตรวจเพิ่มเติมที่ควรเตรียม (Suggested Investigations): ${getSuggestedInvestigations(pRecord.chiefComplaints)}`;
-
+  ddxList.forEach((item, idx) => { A += `  ${idx + 1}. ${item.name} (${item.probability}) - ${item.advice}\n`; });
+  let R = `แนวทางปฏิบัติ: ${triageResult.recommendation}\nการตรวจเพิ่มเติมที่ควรเตรียม (Suggested Investigations): ${getSuggestedInvestigations(pRecord.chiefComplaints)}`;
   return { S, B, A, R };
 }
 
@@ -593,7 +533,6 @@ function getSuggestedInvestigations(complaints) {
   return invs.size > 0 ? Array.from(invs).join(', ') : 'ตรวจประเมินสัญญาณชีพซ้ำ (Re-evaluate V/S)';
 }
 
-// UI CONTROLLERS
 const screens = ['demographics', 'chief-complaints', 'onset', 'detailed', 'severity', 'redflags', 'vitals', 'summary'];
 let currentScreenIndex = 0;
 
@@ -607,65 +546,70 @@ function showScreen(index) {
 
 function nextScreen(target) {
   const idx = screens.indexOf(target);
-  if (idx >= 0) {
-    if (target === 'detailed') buildDynamicQuestions();
-    if (target === 'redflags') buildRedFlags();
-    showScreen(idx);
-  }
+  if (idx >= 0) { if (target === 'detailed') buildDynamicQuestions(); if (target === 'redflags') buildRedFlags(); showScreen(idx); }
 }
-
 function prevScreen() { if (currentScreenIndex > 0) showScreen(currentScreenIndex - 1); }
-
 function updateProgress() {
   const percent = ((currentScreenIndex + 1) / screens.length) * 100;
   document.getElementById('progressFill').style.width = percent + '%';
   document.getElementById('progressText').textContent = `ขั้นตอนที่ ${currentScreenIndex + 1} จาก ${screens.length}`;
 }
 
+// --- แก้ไขฟังก์ชัน switchMode และ เพิ่ม handleDoctorMode ---
 function switchMode(mode) {
   document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
   document.querySelector(`.mode-btn[data-mode="${mode}"]`).classList.add('active');
 }
 
-function buildSymptomGrid() {
-  document.getElementById('symptomGrid').innerHTML = symptomsDB.map(s => 
-    `<div class="symptom-card" data-id="${s.id}" onclick="toggleSymptom('${s.id}', this)">
-      <span class="symptom-icon">${s.icon}</span>
-      <div style="font-weight:600; font-size:0.95rem;">${s.name}</div>
-    </div>`
-  ).join('');
+function handleDoctorMode() {
+  // เปลี่ยน UI ให้ปุ่ม Doctor Active
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.mode-btn[data-mode="doctor"]').classList.add('active');
+
+  const sbarArea = document.getElementById('sbar-report-area');
+  const summaryScreen = document.getElementById('screen-summary');
+
+  if (sbarArea) {
+    // หากมีรายงานแล้ว แต่ไม่ได้อยู่หน้า Summary ให้สลับไปหน้า Summary ก่อน
+    if (!summaryScreen.classList.contains('active')) {
+      showScreen(screens.indexOf('summary'));
+    }
+    // หน่วงเวลาเล็กน้อยเพื่อให้หน้าเว็บเรนเดอร์เสร็จ แล้วเรียก Capture ภาพ
+    setTimeout(() => captureSBARasImage(), 400);
+  } else {
+    // หากยังไม่มีรายงาน ให้แจ้งเตือน
+    alert('⚠️ กรุณากรอกข้อมูลและกด "ประเมิน Triage & สร้าง SBAR Report" ให้เสร็จสิ้นก่อนสร้างรูปภาพนะครับ');
+    // ย้อน UI กลับไปโหมดพยาบาล
+    document.querySelector('.mode-btn[data-mode="patient"]').classList.add('active');
+    document.querySelector('.mode-btn[data-mode="doctor"]').classList.remove('active');
+  }
 }
 
+function buildSymptomGrid() {
+  document.getElementById('symptomGrid').innerHTML = symptomsDB.map(s => `<div class="symptom-card" data-id="${s.id}" onclick="toggleSymptom('${s.id}', this)"><span class="symptom-icon">${s.icon}</span><div style="font-weight:600; font-size:0.95rem;">${s.name}</div></div>`).join('');
+}
 function toggleSymptom(id, el) {
   el.classList.toggle('selected');
   const idx = patientRecord.chiefComplaints.indexOf(id);
-  if (idx >= 0) patientRecord.chiefComplaints.splice(idx, 1);
-  else patientRecord.chiefComplaints.push(id);
+  if (idx >= 0) patientRecord.chiefComplaints.splice(idx, 1); else patientRecord.chiefComplaints.push(id);
 }
 
 function buildDynamicQuestions() {
   const container = document.getElementById('dynamicQuestions');
-  if (patientRecord.chiefComplaints.length === 0) {
-    container.innerHTML = '<div class="alert alert-info">กรุณากลับไปเลือกอาการนำในขั้นตอนก่อนหน้า</div>';
-    return;
-  }
+  if (patientRecord.chiefComplaints.length === 0) { container.innerHTML = '<div class="alert alert-info">กรุณากลับไปเลือกอาการนำในขั้นตอนก่อนหน้า</div>'; return; }
   let html = '';
   patientRecord.chiefComplaints.forEach(symptomId => {
     const symptom = symptomsDB.find(s => s.id === symptomId);
     const questions = dynamicQuestionsDB[symptomId] || [];
     if (questions.length === 0) return;
-    html += `<div style="margin-bottom: 22px; padding: 18px; background: #f8fafc; border-radius: var(--radius-sm); border-left: 4px solid var(--primary);">
-              <h3 style="margin-bottom: 14px; color: var(--primary-dark);">${symptom.icon} ${symptom.name}</h3>`;
+    html += `<div style="margin-bottom: 22px; padding: 18px; background: #f8fafc; border-radius: var(--radius-sm); border-left: 4px solid var(--primary);"><h3 style="margin-bottom: 14px; color: var(--primary-dark);">${symptom.icon} ${symptom.name}</h3>`;
     questions.forEach((q, qi) => {
       const key = `${symptomId}_q${qi}`;
       html += `<div class="form-group"><label>${q.q}</label>`;
-      if (q.type === 'text') {
-        html += `<input type="text" placeholder="${q.placeholder || ''}" onchange="saveDynamic('${key}', this.value)">`;
-      } else if (q.type === 'radio') {
+      if (q.type === 'text') { html += `<input type="text" placeholder="${q.placeholder || ''}" onchange="saveDynamic('${key}', this.value)">`; }
+      else if (q.type === 'radio') {
         html += '<div class="radio-group">';
-        q.options.forEach((opt, oi) => {
-          html += `<div class="radio-option"><input type="radio" name="${key}" id="${key}_${oi}" value="${opt}" onchange="saveDynamic('${key}', '${opt}')"><label for="${key}_${oi}">${opt}</label></div>`;
-        });
+        q.options.forEach((opt, oi) => { html += `<div class="radio-option"><input type="radio" name="${key}" id="${key}_${oi}" value="${opt}" onchange="saveDynamic('${key}', '${opt}')"><label for="${key}_${oi}">${opt}</label></div>`; });
         html += '</div>';
       }
       html += '</div>';
@@ -674,122 +618,69 @@ function buildDynamicQuestions() {
   });
   container.innerHTML = html;
 }
-
 function saveDynamic(key, val) { patientRecord.dynamicAnswers[key] = val; }
 
 function updateSeverity(val) {
   patientRecord.severity = parseInt(val);
   const display = document.getElementById('severityDisplay');
   display.textContent = val;
-  if (val <= 3) display.style.color = '#10b981';
-  else if (val <= 6) display.style.color = '#f59e0b';
-  else display.style.color = '#ef4444';
+  if (val <= 3) display.style.color = '#10b981'; else if (val <= 6) display.style.color = '#f59e0b'; else display.style.color = '#ef4444';
 }
 
 function buildRedFlags() {
-  document.getElementById('redFlagList').innerHTML = redFlagsDB.map(rf => 
-    `<div class="red-flag-item" onclick="toggleRedFlag('${rf.id}', this)">
-      <span class="red-flag-icon">${rf.icon}</span>
-      <div class="red-flag-text">${rf.text}</div>
-    </div>`
-  ).join('');
+  document.getElementById('redFlagList').innerHTML = redFlagsDB.map(rf => `<div class="red-flag-item" onclick="toggleRedFlag('${rf.id}', this)"><span class="red-flag-icon">${rf.icon}</span><div class="red-flag-text">${rf.text}</div></div>`).join('');
 }
-
 function toggleRedFlag(id, el) {
   el.classList.toggle('selected');
   const idx = patientRecord.redFlags.indexOf(id);
-  if (idx >= 0) patientRecord.redFlags.splice(idx, 1);
-  else patientRecord.redFlags.push(id);
+  if (idx >= 0) patientRecord.redFlags.splice(idx, 1); else patientRecord.redFlags.push(id);
 }
 
 function collectFormData() {
   patientRecord.demographics.age = document.getElementById('age').value;
-  const genderEl = document.querySelector('input[name="gender"]:checked');
-  patientRecord.demographics.gender = genderEl ? genderEl.value : null;
-  const pregEl = document.querySelector('input[name="pregnancy"]:checked');
-  patientRecord.demographics.pregnancy = pregEl ? pregEl.value : null;
-  
+  const genderEl = document.querySelector('input[name="gender"]:checked'); patientRecord.demographics.gender = genderEl ? genderEl.value : null;
+  const pregEl = document.querySelector('input[name="pregnancy"]:checked'); patientRecord.demographics.pregnancy = pregEl ? pregEl.value : null;
   patientRecord.chronicDiseases = document.getElementById('chronicDiseases').value;
   patientRecord.medications = document.getElementById('medications').value;
   patientRecord.onset = document.getElementById('onset').value;
-  
-  const progEl = document.querySelector('input[name="progression"]:checked');
-  patientRecord.progression = progEl ? progEl.value : '';
+  const progEl = document.querySelector('input[name="progression"]:checked'); patientRecord.progression = progEl ? progEl.value : '';
   patientRecord.narrative = document.getElementById('narrative').value;
-  
   patientRecord.vitals.temp = document.getElementById('v-temp').value;
   patientRecord.vitals.hr = document.getElementById('v-hr').value;
   patientRecord.vitals.spo2 = document.getElementById('v-spo2').value;
   patientRecord.vitals.bps = document.getElementById('v-bps').value;
   patientRecord.vitals.bpd = document.getElementById('v-bpd').value;
   patientRecord.vitals.rr = document.getElementById('v-rr').value;
-  
-  const cEl = document.querySelector('input[name="consciousness"]:checked');
-  patientRecord.vitals.consciousness = cEl ? cEl.value : 'รู้ตัวดี';
+  const cEl = document.querySelector('input[name="consciousness"]:checked'); patientRecord.vitals.consciousness = cEl ? cEl.value : 'รู้ตัวดี';
 }
 
 async function generateSummary() {
   collectFormData();
-  
   document.getElementById('firebaseLoading').classList.add('active');
   document.getElementById('summaryContent').innerHTML = '';
   showScreen(screens.indexOf('summary'));
-
-  // ดึงข้อมูล Firebase พร้อมระบบ Fallback ป้องกันการค้าง
   await fetchFirebaseKnowledge();
-
   const triageResult = evaluateTriage(patientRecord);
   const ddxList = getDifferentialDiagnosis(patientRecord);
   const sbar = generateSBAR(patientRecord, triageResult, ddxList);
-  
   patientRecord.analysis.triageResult = triageResult;
   patientRecord.analysis.sbarReport = sbar;
-
   document.getElementById('firebaseLoading').classList.remove('active');
 
   let html = `
-    <div style="text-align: center;">
-      <div class="triage-badge ${triageResult.badgeClass}">${triageResult.title}</div>
-    </div>
-    
+    <div style="text-align: center;"><div class="triage-badge ${triageResult.badgeClass}">${triageResult.title}</div></div>
     <div class="alert alert-${triageResult.badgeClass === 'urgent' ? 'danger' : triageResult.badgeClass === 'gp' ? 'warning' : 'info'}">
       <span style="font-size: 1.5rem;">${triageResult.badgeClass === 'urgent' ? '🚨' : '⚠️'}</span>
       <div><strong>แนวทางปฏิบัติตามระดับ Triage:</strong> ${triageResult.recommendation}</div>
     </div>
-
-    <div class="sbar-container">
-      <div class="sbar-header">
-        <span>📋 SBAR CLINICAL HANDOVER REPORT</span>
-        <span style="font-size: 0.85rem; font-weight:400;">NEWS2: ${triageResult.news2}</span>
-      </div>
-      
-      <div class="sbar-section">
-        <div class="sbar-title"><span>S</span> — Situation (อาการนำ & สัญญาณชีพ)</div>
-        <div class="sbar-content">${sbar.S}</div>
-      </div>
-      
-      <div class="sbar-section">
-        <div class="sbar-title"><span>B</span> — Background (ประวัติเดิม & การดำเนินโรค)</div>
-        <div class="sbar-content">${sbar.B}</div>
-      </div>
-      
-      <div class="sbar-section">
-        <div class="sbar-title"><span>A</span> — Assessment (การประเมิน & Red Flags)</div>
-        <div class="sbar-content">${sbar.A}</div>
-      </div>
-      
-      <div class="sbar-section">
-        <div class="sbar-title"><span>R</span> — Recommendation (แนวทางปฏิบัติ & การส่งตรวจ)</div>
-        <div class="sbar-content">${sbar.R}</div>
-      </div>
+    <div class="sbar-container" id="sbar-report-area">
+      <div class="sbar-header"><span>📋 SBAR CLINICAL HANDOVER REPORT</span><span style="font-size: 0.85rem; font-weight:400;">NEWS2: ${triageResult.news2}</span></div>
+      <div class="sbar-section"><div class="sbar-title"><span>S</span> — Situation (อาการนำ & สัญญาณชีพ)</div><div class="sbar-content">${sbar.S}</div></div>
+      <div class="sbar-section"><div class="sbar-title"><span>B</span> — Background (ประวัติเดิม & การดำเนินโรค)</div><div class="sbar-content">${sbar.B}</div></div>
+      <div class="sbar-section"><div class="sbar-title"><span>A</span> — Assessment (การประเมิน & Red Flags)</div><div class="sbar-content">${sbar.A}</div></div>
+      <div class="sbar-section"><div class="sbar-title"><span>R</span> — Recommendation (แนวทางปฏิบัติ & การส่งตรวจ)</div><div class="sbar-content">${sbar.R}</div></div>
     </div>
-
-    <div class="alert alert-info no-print" style="margin-top:16px;">
-      <span>ℹ️</span>
-      <div><strong>Safety Guardrail Disclaimer:</strong> ระบบนี้เป็นระบบสนับสนุนการตัดสินใจทางคลินิกเบื้องต้น (Provisional Assessment Only) ไม่ใช่การวินิจฉัยชี้ขาดทางการแพทย์</div>
-    </div>
-  `;
-
+    <div class="alert alert-info no-print" style="margin-top:16px;"><span>ℹ️</span><div><strong>Safety Guardrail Disclaimer:</strong> ระบบนี้เป็นระบบสนับสนุนการตัดสินใจทางคลินิกเบื้องต้น (Provisional Assessment Only) ไม่ใช่การวินิจฉัยชี้ขาดทางการแพทย์</div></div>`;
   document.getElementById('summaryContent').innerHTML = html;
 }
 
@@ -804,10 +695,39 @@ function showEmergencyModal() { document.getElementById('emergencyModal').classL
 function closeEmergencyModal() { document.getElementById('emergencyModal').classList.remove('active'); }
 function resetAll() { if (confirm('ต้องการเริ่มประเมินผู้ป่วยรายใหม่หรือไม่? ข้อมูลเดิมจะถูกรีเซ็ต')) location.reload(); }
 
+// --- IMAGE CAPTURE FUNCTIONS ---
+async function captureSBARasImage() {
+  const element = document.getElementById('sbar-report-area');
+  if (!element) { alert('ไม่พบส่วนรายงาน SBAR กรุณารอสักครู่'); return; }
+  const modal = document.getElementById('imagePreviewModal');
+  const img = document.getElementById('previewImg');
+  try {
+    img.src = '';
+    modal.classList.add('active');
+    const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, windowWidth: 800 });
+    const dataUrl = canvas.toDataURL('image/png');
+    img.src = dataUrl;
+    window._sbarImageDataUrl = dataUrl;
+  } catch (err) {
+    console.error('Error capturing image:', err);
+    alert('เกิดข้อผิดพลาดในการสร้างรูปภาพ');
+    modal.classList.remove('active');
+  }
+}
+
+function downloadImage() {
+  if (!window._sbarImageDataUrl) return;
+  const link = document.createElement('a');
+  link.download = 'SBAR_Report_' + new Date().toISOString().slice(0,10) + '.png';
+  link.href = window._sbarImageDataUrl;
+  link.click();
+}
+
+function closeImageModal() { document.getElementById('imagePreviewModal').classList.remove('active'); }
+
 window.addEventListener('DOMContentLoaded', () => {
   buildSymptomGrid();
   updateProgress();
-
   document.querySelectorAll('input[name="gender"]').forEach(el => {
     el.addEventListener('change', () => {
       document.getElementById('pregnancy-group').style.display = (el.value === 'หญิง' && el.checked) ? 'block' : 'none';
